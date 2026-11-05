@@ -152,6 +152,7 @@ class ReasignarInstructorDTO(BaseModel):
 class ReservaRecepcionDTO(BaseModel):
     socio_id: str = Field(..., examples=["FIT-C001"])
     empleado_id: str = Field(..., examples=["REC-01"])
+    es_drop_in: bool = False
 
 
 class ActualizarCapacidadDTO(BaseModel):
@@ -767,7 +768,7 @@ def reservar_desde_recepcion(
         SqlSocioRepository(session), SqlClaseProgramadaRepository(session), SqlAlchemyUnitOfWork(session)
     )
     try:
-        resultado = service.reservar_clase(dto.socio_id, clase_id)
+        resultado = service.reservar_clase(dto.socio_id, clase_id, es_drop_in=dto.es_drop_in)
         return {**resultado, "registrada_por": empleado_autenticado, "canal": "RECEPCION"}
     except FitZoneDomainError as exc:
         raise _traducir_error_dominio(exc)

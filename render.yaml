@@ -36,3 +36,17 @@ services:
         generateValue: true
       - key: FITZONE_STAFF_TOKEN_INSTRUCTOR
         generateValue: true
+      - key: FITZONE_SESSION_SECRET
+        generateValue: true
+      - key: FITZONE_DEMO_ADMIN_USER
+        value: admin
+      - key: FITZONE_DEMO_ADMIN_PASSWORD
+        value: FitZoneAdmin2026!
+      - key: FITZONE_DEMO_RECEPCION_USER
+        value: recepcion
+      - key: FITZONE_DEMO_RECEPCION_PASSWORD
+        value: FitZoneRecepcion2026!
+      - key: FITZONE_DEMO_INSTRUCTOR_USER
+        value: instructor
+      - key: FITZONE_DEMO_INSTRUCTOR_PASSWORD
+        value: FitZoneInstructor2026!

@@ -32,113 +32,14 @@ Este proyecto materializa la solución integral de software basada en lógica de
 ## 2. Interfaz web de FitZone
 La aplicación web está disponible en la raíz del servicio desplegado. Incluye panel general, consulta de socios, clases programadas, registro/cancelación de reservaciones y reportes de ocupación e inasistencias. La interfaz consume la API REST del mismo servicio; no utiliza datos simulados.
 
-Las operaciones de administración que requieren credenciales utilizan el panel **Acceso de personal**. Se deben introducir los tokens configurados en las variables de entorno de Render; el navegador los conserva únicamente durante la sesión. No se deben publicar ni compartir esos tokens.
+El personal ingresa desde la pantalla **Iniciar sesión** con usuario y contraseña. La API valida las credenciales en el servidor y entrega una sesión firmada de duración limitada; el navegador no recibe ni almacena los secretos de las cuentas. Las cuentas de demostración se configuran mediante variables de entorno en Render.
 
-## 3. Estructura del Repositorio
+### Cuentas de demostración para la presentación
 
-```text
-fitzone-pia/
-├── frontend/\n│   ├── index.html                                # Interfaz de usuario\n│   ├── styles.css                                # Diseño adaptable\n│   └── app.js                                    # Consumo de API REST\n├── docs/
-│   ├── BRD.md                                      # BRD + 20 User Stories/Gherkin + Glosario + Trazabilidad
-│   ├── architecture/
-│   │   ├── ARCHITECTURE_AND_ADRS.md                # DDD, UML, SOLID y ADRs (ADR-01 a ADR-04)
-│   │   └── diagrams/                               # BPMN, DDD, UML, arquitectura por capas y máquina de estados
-│   └── api/
-│       └── openapi.json                            # Especificación OpenAPI 3.1 exportada
-├── src/
-│   ├── domain/                                     # Núcleo DDD puro (0 dependencias externas)
-│   │   ├── models.py                               # Aggregates: Socio, OperacionMembresia, ClaseProgramada
-│   │   ├── value_objects.py                        # Money (Decimal), Vigencia, LineaOperacion
-│   │   ├── specifications.py                       # Specifications componibles (&, |, ~)
-│   │   ├── events.py                               # DomainEvent inmutable
-│   │   └── exceptions.py                           # Jerarquía de excepciones de negocio
-│   ├── application/                                # Casos de uso (Service Layer + CQRS) y Puertos (ISP/DIP)
-│   │   ├── ports.py                                # Interfaces de repositorios, UoW, Torniquete, Pagos
-│   │   ├── services.py                             # MembresiaAppService, ReservaAppService, ControlAcceso, CQRS
-│   │   └── scheduled_tasks.py                      # Procesos programados de promociones y alertas
-│   ├── infrastructure/                             # Adaptadores SQLAlchemy, SQLite/PostgreSQL y lector CSV
-│   │   ├── database.py                             # Modelos ORM y configuración por variables de entorno
-│   │   ├── repositories.py                         # Repositorios SQL y SqlAlchemyUnitOfWork
-│   │   └── csv_loader.py                           # Importador y evaluador de los CSVs de 11_FitZone
-│   ├── api/                                        # Controladores HTTP REST con FastAPI
-│   │   └── main.py                                 # 31 rutas REST documentadas con traducción de errores (200/201/403/404/409/422)
-├── datos/                                          # Archivos CSV oficiales de 11_FitZone
-├── resultados/                                     # Salidas resueltas de los 120 casos y 20 transiciones
-├── tests/                                          # Suite de pruebas unitarias, CSVs, repositorios y API REST
-├── .github/workflows/ci.yml                        # Workflow de CI (Ruff + Pytest + Coverage >= 80%)
-├── Dockerfile                                      # Imagen de contenedor de la aplicación
-├── docker-compose.yml                              # Orquestación de DB (PostgreSQL) + App (FastAPI) + Tests + Worker
-├── .env.example                                    # Variables de entorno de ejemplo (12-Factor App)
-├── pyproject.toml                                  # Configuración de Pytest, Coverage y Ruff
-├── requirements.txt                                # Dependencias del proyecto
-└── README.md                                       # Este documento
-```
+| Perfil | Usuario | Contraseña |
+|---|---|---|
+| Administrador | `admin` | `FitZoneAdmin2026!` |
+| Recepción | `recepcion` | `FitZoneRecepcion2026!` |
+| Instructor | `instructor` | `FitZoneInstructor2026!` |
 
----
-
-## 4. Instrucciones de Instalación y Ejecución Local
-
-### 3.1 Crear entorno virtual e instalar dependencias
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-### 3.2 Ejecutar la suite de pruebas y verificar cobertura (>= 80%)
-```powershell
-pytest -v --cov=src --cov-report=term-missing --cov-report=html:htmlcov --cov-fail-under=80 tests
-```
-
-### 3.3 Levantar el servidor API REST y abrir Swagger UI
-```powershell
-uvicorn src.api.main:app --reload --port 8000
-```
-- **Swagger UI interactivo:** `http://127.0.0.1:8000/docs`
-- **Healthcheck:** `http://127.0.0.1:8000/health`
-- Las rutas de recepción, instructor y administración requieren `X-Staff-Role`, `X-Staff-Token` y `X-Staff-Id`; configura `FITZONE_STAFF_TOKEN_RECEPCION`, `FITZONE_STAFF_TOKEN_INSTRUCTOR` y `FITZONE_STAFF_TOKEN_ADMIN` en el entorno. Los tokens de `.env.example` son marcadores y deben reemplazarse.
-- **Antes de probar accesos o reservas:** el CSV oficial no contiene fechas de vigencia. Por seguridad, el sistema deniega el acceso físico y las reservas cuando no se han registrado. Un administrador debe capturar las fechas con `PUT /api/v1/socios/{actor_id}/vigencia`.
-
-### 3.4 Registrar la vigencia de un socio (PowerShell)
-```powershell
-$headers = @{
-  "X-Staff-Role" = "ADMIN"
-  "X-Staff-Token" = $env:FITZONE_STAFF_TOKEN_ADMIN
-  "X-Staff-Id" = "ADMIN-01"
-}
-$body = @{
-  fecha_inicio = "2026-11-01"
-  fecha_fin = "2026-12-01"
-} | ConvertTo-Json
-Invoke-RestMethod -Method Put -Uri "http://127.0.0.1:8000/api/v1/socios/FIT-C001/vigencia" -Headers $headers -ContentType "application/json" -Body $body
-Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/v1/socios/FIT-C001/acceso"
-```
-Reemplaza las fechas por las que correspondan al contrato real del socio. No uses fechas de ejemplo como si fueran datos reales.
-
-### 3.5 Reporte de no-shows
-```powershell
-Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:8000/api/v1/reportes/no-shows"
-```
-El reporte calcula la tasa histórica con reservas que terminaron en `ASISTIDA` o `NO_SHOW`; no incluye reservas pendientes ni canceladas.
-
----
-
-## 5. Ejecución con Docker Compose (DB + App + Tests)
-
-```powershell
-# Copiar archivo de variables de entorno
-Copy-Item .env.example .env
-
-# Construir y levantar PostgreSQL + API FastAPI + Contenedor de Pruebas
-docker compose up --build
-```
-El servicio `tests` ejecuta automáticamente la suite completa y verifica que la cobertura supere el 80%, `app` expone la API REST en `http://localhost:8000/docs` conectada a `db`, y `worker` procesa promociones vencidas cada 60 segundos y genera diariamente el reporte de vencimientos. Para revisar el reporte: `docker compose logs -f worker`. Las alertas se registran en logs; no se envían correos/SMS sin configurar un proveedor. Mantener una sola réplica de `worker`.
-
-## Endpoints agregados en la Fase 1
-
-- `POST /api/v1/clases/{clase_id}/asistencia/{socio_id}` — registra asistencia y conserva el contador mensual de no-shows.
-- `POST /api/v1/clases/{clase_id}/promociones/{socio_id}/confirmar` — confirma una promoción FIFO pendiente dentro de los 30 minutos.
-- `POST /api/v1/clases/{clase_id}/promociones/procesar-expiracion` — procesa la expiración de la promoción y promueve al siguiente socio.
-
-Consulta `docs/FASE_1_CORRECCIONES_TECNICAS.md` para los cambios, la validación y los pendientes que todavía requieren datos o infraestructura externa.
+Las credenciales anteriores son exclusivas de la demostración académica. Cambiarlas antes de utilizar el sistema con información real. Las cuentas se definen en Render mediante variables `FITZONE_DEMO_*`; las sesiones se firman con `FITZONE_SESSION_SECRET`.

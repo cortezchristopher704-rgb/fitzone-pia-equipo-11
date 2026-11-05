@@ -290,7 +290,7 @@ def test_new_use_cases_reception_instructor_capacity_and_expiry_alerts(monkeypat
         # La clase se programa dinámicamente a futuro para que la prueba no dependa
         # de la hora del día en que se ejecute (corte de cancelación de instructor: 2 h).
         horario_demo = (datetime.now() + timedelta(hours=4)).isoformat(timespec="minutes")
-        client.post("/api/v1/clases", json={"clase_id": "CLASE-REC-01", "disciplina": "Yoga", "horario": horario_demo, "capacidad_maxima": 1, "instructor_id": "INST-REC"})
+        client.post("/api/v1/clases", json={"clase_id": "CLASE-REC-01", "disciplina": "Yoga", "horario": horario_demo, "capacidad_maxima": 1, "instructor_id": "INST-REC"}, headers=admin_headers)
         recepcion_headers = {"X-Staff-Role": "RECEPCION", "X-Staff-Token": "test-rec-secret", "X-Staff-Id": "REC-01"}
         instructor_headers = {"X-Staff-Role": "INSTRUCTOR", "X-Staff-Token": "test-inst-secret", "X-Staff-Id": "INST-REC"}
         assert client.post("/api/v1/clases/CLASE-REC-01/reservas/recepcion", json={"socio_id": "FIT-C001", "empleado_id": "REC-01"}, headers={**recepcion_headers, "X-Staff-Token": "bad-token"}).status_code == 403
@@ -308,6 +308,7 @@ def test_new_use_cases_reception_instructor_capacity_and_expiry_alerts(monkeypat
         assert r.json()["total"] == 2
         client.headers.clear()
         assert client.post("/api/v1/clases/CLASE-REC-01/asistencia/FIT-C001").status_code == 401
+        client.headers.update(admin_headers)
         assert client.post("/api/v1/clases/CLASE-REC-01/asistencia/FIT-C001", headers=instructor_headers).status_code == 200
         estados_lista = {s["socio_id"]: s["estado"] for s in r.json()["socios"]}
         assert estados_lista["FIT-C001"] == "CONFIRMADA"
@@ -328,7 +329,7 @@ def test_new_use_cases_reception_instructor_capacity_and_expiry_alerts(monkeypat
         assert client.post("/api/v1/clases", json={
             "clase_id": "CLASE-PLAN-01", "disciplina": "CrossFit",
             "horario": "2026-11-06 12:00", "capacidad_maxima": 3,
-        }).status_code == 201
+        }, headers=admin_headers).status_code == 201
         r_planes = client.patch("/api/v1/clases/CLASE-PLAN-01/planes-incluidos",
             json={"planes_incluidos": ["PREMIUM"]}, headers=admin_headers)
         assert r_planes.status_code == 200

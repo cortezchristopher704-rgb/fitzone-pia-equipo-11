@@ -210,7 +210,6 @@ def test_application_services_with_mocks_and_uow():
 
     # ControlAccesoAppService: acceso permitido solo con vigencia registrada y vigente.
     socio_con_vigencia = socio_repo.get_by_id("FIT-C001")
-    from src.domain.value_objects import Vigencia
     socio_con_vigencia.vigencia = Vigencia(date.today() - timedelta(days=1), date.today() + timedelta(days=30))
     socio_repo.save(socio_con_vigencia)
     uow.commit()

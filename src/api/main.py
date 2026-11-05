@@ -9,7 +9,8 @@ import hmac
 import json
 import os
 from contextlib import asynccontextmanager
-from datetime import UTC, date, datetime, time as time_type, timedelta
+from datetime import UTC, date, datetime, timedelta
+from datetime import time as time_type
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status

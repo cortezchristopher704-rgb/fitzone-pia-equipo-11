@@ -38,4 +38,5 @@ $("#login-form").addEventListener("submit",async e=>{e.preventDefault();const bu
 
 $("#class-form").addEventListener("submit",createClass);
 $("#cancel-class").addEventListener("click",()=>$("#class-dialog").close());
+updateSessionButton();
 loadBase();

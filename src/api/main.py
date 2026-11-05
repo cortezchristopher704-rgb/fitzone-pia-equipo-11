@@ -560,7 +560,8 @@ def listar_clases(session: Session = Depends(get_db_session)) -> list[dict[str, 
     tags=["Clases y Reservas"],
 )
 def crear_clase(
-    dto: CrearClaseRequestDTO, session: Session = Depends(get_db_session)
+    dto: CrearClaseRequestDTO, session: Session = Depends(get_db_session),
+    _administrador_autenticado: str = Depends(requerir_rol_staff("ADMIN")),
 ) -> dict[str, Any]:
     repo = SqlClaseProgramadaRepository(session)
     uow = SqlAlchemyUnitOfWork(session)

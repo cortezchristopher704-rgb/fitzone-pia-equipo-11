@@ -341,10 +341,6 @@ def test_reservation_rejects_class_more_than_seven_days_ahead_and_unincluded_bas
 
 
 def test_actualizar_capacidad_rechaza_aforo_menor_a_reservas_activas():
-    from src.domain.models import ClaseProgramada, Socio
-    from src.domain.exceptions import DatosInvalidosError
-    import pytest
-
     clase = ClaseProgramada("CAP-01", "Yoga", "2026-11-05 10:00", 2)
     clase.reservar(socio_vigente("SOC-01", "Socio Uno"))
     clase.actualizar_capacidad(3)

@@ -19,9 +19,9 @@ from src.domain.models import (
 from src.domain.value_objects import LineaOperacion, Money, Vigencia
 from src.infrastructure.database import (
     ClaseProgramadaRow,
+    NotificacionOutboxRow,
     OperacionMembresiaRow,
     PlanDeportivoRow,
-    NotificacionOutboxRow,
     SocioRow,
 )
 

@@ -848,9 +848,15 @@ def cancelar_reserva_en_clase(
 
 @app.post("/api/v1/clases/{clase_id}/asistencia/{socio_id}", tags=["Clases y Reservas"])
 def registrar_asistencia_en_clase(
-    clase_id: str, socio_id: str, session: Session = Depends(get_db_session)
+    clase_id: str, socio_id: str, session: Session = Depends(get_db_session),
+    instructor_autenticado: str = Depends(requerir_rol_staff("INSTRUCTOR")),
 ) -> dict[str, Any]:
-    """US-011: Registra asistencia efectiva y conserva el contador mensual de no-shows."""
+    """US-011: solo el instructor asignado puede registrar asistencia."""
+    clase = SqlClaseProgramadaRepository(session).get_by_id(clase_id)
+    if clase is None:
+        raise HTTPException(status_code=404, detail=f"No encontramos la clase {clase_id}.")
+    if clase.instructor_id != instructor_autenticado:
+        raise HTTPException(status_code=403, detail="Solo el instructor asignado puede registrar asistencia.")
     service = AsistenciaAppService(SqlSocioRepository(session), SqlClaseProgramadaRepository(session), SqlAlchemyUnitOfWork(session))
     try:
         return service.registrar_asistencia(socio_id, clase_id)
@@ -896,9 +902,15 @@ def procesar_expiracion_promocion(
 
 @app.post("/api/v1/clases/{clase_id}/no-show/{socio_id}", tags=["Clases y Reservas"])
 def registrar_no_show_en_clase(
-    clase_id: str, socio_id: str, session: Session = Depends(get_db_session)
+    clase_id: str, socio_id: str, session: Session = Depends(get_db_session),
+    instructor_autenticado: str = Depends(requerir_rol_staff("INSTRUCTOR")),
 ) -> dict[str, Any]:
-    """CU-05 (US-011, US-017): Registra inasistencia y bloquea 7 días al 3er no-show mensual."""
+    """CU-05 (US-011, US-017): solo el instructor asignado registra no-shows."""
+    clase = SqlClaseProgramadaRepository(session).get_by_id(clase_id)
+    if clase is None:
+        raise HTTPException(status_code=404, detail=f"No encontramos la clase {clase_id}.")
+    if clase.instructor_id != instructor_autenticado:
+        raise HTTPException(status_code=403, detail="Solo el instructor asignado puede registrar inasistencias.")
     service = AsistenciaAppService(
         SqlSocioRepository(session),
         SqlClaseProgramadaRepository(session),

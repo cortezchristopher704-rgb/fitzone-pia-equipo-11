@@ -31,7 +31,7 @@ jobs:
 
       - name: Ejecutar Suite de Pruebas y Validar Cobertura >= 80%
         env:
-          DATABASE_URL: "sqlite:///:memory:"
+          DATABASE_URL: "sqlite:///./fitzone_ci.sqlite3"
           FITZONE_DATA_DIR: ./datos
         run: |
           pytest -v --cov=src --cov-report=term-missing --cov-fail-under=80 tests

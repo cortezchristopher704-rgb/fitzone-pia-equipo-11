@@ -229,7 +229,6 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
         assert client.post("/api/v1/clases/NO-EXISTE/no-show/FIT-C009").status_code == 404
 
         # Reasignar instructor y cancelar por instructor
-        instructor_headers = {"X-Staff-Role": "INSTRUCTOR", "X-Staff-Token": "test-inst-secret", "X-Staff-Id": "INST-01"}
         r_reasig = client.post(
             "/api/v1/clases/CLASE-03/reasignar-instructor",
             json={"nuevo_instructor_id": "INST-SUPLENTE-10"}, headers=admin_headers,

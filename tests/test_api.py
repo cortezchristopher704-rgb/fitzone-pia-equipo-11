@@ -65,11 +65,11 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
         assert client.put("/api/v1/socios/FIT-C001/vigencia", json={
             "fecha_inicio": "2026-12-31", "fecha_fin": "2026-01-01",
         }, headers=admin_headers).status_code == 422
-        r_acc_ok = client.post("/api/v1/socios/FIT-C001/acceso")
+        r_acc_ok = client.post("/api/v1/socios/FIT-C001/acceso", headers=reception_headers)
         assert r_acc_ok.status_code == 200
         assert r_acc_ok.json()["permitido"] is True
 
-        r_acc_den = client.post("/api/v1/socios/FIT-C007/acceso")
+        r_acc_den = client.post("/api/v1/socios/FIT-C007/acceso", headers=reception_headers)
         assert r_acc_den.status_code == 200
         assert r_acc_den.json()["permitido"] is False
 
@@ -96,7 +96,7 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
         assert r_eval.json()["beneficio_preferente"] is True
 
         # Aprobar FIT-O001 (200) y tratar de aprobar por segunda vez (409 Conflict)
-        assert client.post("/api/v1/operaciones/FIT-O001/aprobar").status_code == 200
+        r_ap1 = client.post("/api/v1/operaciones/FIT-O001/aprobar")
         assert r_ap1.status_code == 200
         assert r_ap1.json()["estado"] == "ACTIVA"
 

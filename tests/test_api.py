@@ -442,3 +442,40 @@ def test_bulk_demo_vigency_assigns_only_missing_memberships(monkeypatch):
         assert socio["vigencia_inicio"] == start
         assert socio["vigencia_fin"] == end
         assert client.post("/api/v1/socios/vigencias-demo", headers=headers).json()["actualizados"] == 0
+
+
+def test_reception_can_register_membership_request(monkeypatch):
+    monkeypatch.setenv("FITZONE_STAFF_TOKEN_RECEPCION", "test-reception-secret")
+    with TestClient(app) as client:
+        client.post("/api/v1/seed")
+        headers = {
+            "X-Staff-Role": "RECEPCION",
+            "X-Staff-Token": "test-reception-secret",
+            "X-Staff-Id": "REC-TEST",
+        }
+        catalog = client.get("/api/v1/catalogo").json()
+        plan = next(item for item in catalog if item["habilitado"] and item["capacidad_o_stock"] > 0)
+        response = client.post(
+            "/api/v1/operaciones",
+            headers=headers,
+            json={
+                "operacion_id": "OP-RECEPCION-TEST",
+                "socio_id": "FIT-C001",
+                "lineas": [{"recurso_id": plan["recurso_id"], "cantidad": 1}],
+                "promocion_activa": False,
+            },
+        )
+        assert response.status_code == 201, response.text
+        assert response.json()["estado"] == "SOLICITADA"
+        assert response.json()["actor_id"] == "FIT-C001"
+        assert response.json()["canal"] == "RECEPCION"
+        duplicate = client.post(
+            "/api/v1/operaciones",
+            headers=headers,
+            json={
+                "operacion_id": "OP-RECEPCION-TEST",
+                "socio_id": "FIT-C001",
+                "lineas": [{"recurso_id": plan["recurso_id"], "cantidad": 1}],
+            },
+        )
+        assert duplicate.status_code == 409

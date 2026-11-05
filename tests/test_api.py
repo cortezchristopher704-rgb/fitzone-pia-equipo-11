@@ -133,7 +133,7 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
                 "clase_id": "CLASE-SIN-AUTH", "disciplina": "Yoga",
                 "horario": "2026-11-06 09:00", "capacidad_maxima": 5,
             })
-            assert r_sin_acceso_clase.status_code == 422
+            assert r_sin_acceso_clase.status_code == 401
 
         r_new_c = client.post(
             "/api/v1/clases",
@@ -391,3 +391,33 @@ def test_staff_routes_fail_closed_when_role_token_is_not_configured(monkeypatch)
             headers=headers,
         )
     assert response.status_code == 503
+
+
+
+def test_login_demo_accounts_and_signed_role_sessions(monkeypatch):
+    monkeypatch.setenv("FITZONE_SESSION_SECRET", "test-session-secret")
+    monkeypatch.setenv("FITZONE_DEMO_ADMIN_USER", "admin")
+    monkeypatch.setenv("FITZONE_DEMO_ADMIN_PASSWORD", "admin-pass")
+    monkeypatch.setenv("FITZONE_DEMO_RECEPCION_USER", "recepcion")
+    monkeypatch.setenv("FITZONE_DEMO_RECEPCION_PASSWORD", "recepcion-pass")
+    monkeypatch.setenv("FITZONE_DEMO_INSTRUCTOR_USER", "instructor")
+    monkeypatch.setenv("FITZONE_DEMO_INSTRUCTOR_PASSWORD", "instructor-pass")
+    with TestClient(app) as client:
+        assert client.post("/api/v1/auth/login", json={"usuario": "admin", "contrasena": "bad"}).status_code == 401
+        login = client.post("/api/v1/auth/login", json={"usuario": "admin", "contrasena": "admin-pass"})
+        assert login.status_code == 200
+        data = login.json()
+        assert data["rol"] == "ADMIN"
+        assert data["id"] == "ADMIN-01"
+        headers = {"Authorization": "Bearer " + data["access_token"]}
+        assert client.get("/api/v1/auth/me", headers=headers).json()["rol"] == "ADMIN"
+        assert client.post("/api/v1/clases", json={
+            "clase_id": "CLASE-LOGIN-01", "disciplina": "Yoga",
+            "horario": "2026-11-08 10:00", "capacidad_maxima": 8,
+        }, headers=headers).status_code == 201
+        recepcion = client.post("/api/v1/auth/login", json={"usuario": "recepcion", "contrasena": "recepcion-pass"}).json()
+        assert client.post("/api/v1/clases", json={
+            "clase_id": "CLASE-LOGIN-02", "disciplina": "Yoga",
+            "horario": "2026-11-08 11:00", "capacidad_maxima": 8,
+        }, headers={"Authorization": "Bearer " + recepcion["access_token"]}).status_code == 403
+        assert client.get("/api/v1/auth/me", headers={"Authorization": "Bearer invalid"}).status_code == 401

@@ -421,3 +421,22 @@ def test_login_demo_accounts_and_signed_role_sessions(monkeypatch):
             "horario": "2026-11-08 11:00", "capacidad_maxima": 8,
         }, headers={"Authorization": "Bearer " + recepcion["access_token"]}).status_code == 403
         assert client.get("/api/v1/auth/me", headers={"Authorization": "Bearer invalid"}).status_code == 401
+
+
+def test_bulk_demo_vigency_assigns_only_missing_memberships(monkeypatch):
+    monkeypatch.setenv("FITZONE_STAFF_TOKEN_ADMIN", "test-admin-secret")
+    headers = {"X-Staff-Role": "ADMIN", "X-Staff-Token": "test-admin-secret", "X-Staff-Id": "ADMIN-01"}
+    with TestClient(app) as client:
+        client.post("/api/v1/seed")
+        start = (date.today() - timedelta(days=1)).isoformat()
+        end = (date.today() + timedelta(days=29)).isoformat()
+        assert client.put("/api/v1/socios/FIT-C001/vigencia", json={
+            "fecha_inicio": start, "fecha_fin": end
+        }, headers=headers).status_code == 200
+        response = client.post("/api/v1/socios/vigencias-demo", headers=headers)
+        assert response.status_code == 200
+        assert response.json()["actualizados"] == 39
+        socio = client.get("/api/v1/socios/FIT-C001").json()
+        assert socio["vigencia_inicio"] == start
+        assert socio["vigencia_fin"] == end
+        assert client.post("/api/v1/socios/vigencias-demo", headers=headers).json()["actualizados"] == 0

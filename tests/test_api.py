@@ -10,6 +10,7 @@ from src.api.main import app
 def test_api_end_to_end_flows_and_status_codes(monkeypatch):
     monkeypatch.setenv("FITZONE_STAFF_TOKEN_ADMIN", "test-admin-secret")
     monkeypatch.setenv("FITZONE_STAFF_TOKEN_INSTRUCTOR", "test-inst-secret")
+    monkeypatch.setenv("FITZONE_STAFF_TOKEN_RECEPCION", "test-reception-secret")
     with TestClient(app) as client:
         # 1. Health & Seed (200 / 201)
         r_health = client.get("/health")
@@ -34,7 +35,6 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
         admin_headers = {"X-Staff-Role": "ADMIN", "X-Staff-Token": "test-admin-secret", "X-Staff-Id": "ADMIN-01"}
         client.headers.update(admin_headers)
         reception_headers = {"X-Staff-Role": "RECEPCION", "X-Staff-Token": "test-reception-secret", "X-Staff-Id": "REC-01"}
-        monkeypatch.setenv("FITZONE_STAFF_TOKEN_RECEPCION", "test-reception-secret")
         r_sin_vigencia = client.post("/api/v1/socios/FIT-C001/acceso", headers=reception_headers)
         assert r_sin_vigencia.status_code == 200
         assert r_sin_vigencia.json()["permitido"] is False

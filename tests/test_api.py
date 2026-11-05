@@ -214,7 +214,7 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
             clase_ns = f"CLASE-NS-{idx}"
             client.post("/api/v1/clases", json={"clase_id": clase_ns, "disciplina": "Yoga", "horario": "2026-11-07 10:00", "capacidad_maxima": 5})
             assert client.post(f"/api/v1/clases/{clase_ns}/reservas", json={"socio_id": "FIT-C009"}).status_code == 200
-            r_ns3 = client.post(f"/api/v1/clases/{clase_ns}/no-show/FIT-C009")
+            r_ns3 = client.post(f"/api/v1/clases/{clase_ns}/no-show/FIT-C009", headers={"X-Staff-Role": "INSTRUCTOR", "X-Staff-Token": "test-inst-secret", "X-Staff-Id": "INST-01"})
             assert r_ns3.status_code == 200
         assert r_ns3.json()["bloqueado_reservas"] is True
 
@@ -306,6 +306,8 @@ def test_new_use_cases_reception_instructor_capacity_and_expiry_alerts(monkeypat
         r = client.get("/api/v1/clases/CLASE-REC-01/instructor/INST-REC/lista", headers=instructor_headers)
         assert r.status_code == 200
         assert r.json()["total"] == 2
+        assert client.post("/api/v1/clases/CLASE-REC-01/asistencia/FIT-C001").status_code == 401
+        assert client.post("/api/v1/clases/CLASE-REC-01/asistencia/FIT-C001", headers=instructor_headers).status_code == 200
         estados_lista = {s["socio_id"]: s["estado"] for s in r.json()["socios"]}
         assert estados_lista["FIT-C001"] == "CONFIRMADA"
         assert estados_lista["FIT-C003"] == "LISTA_ESPERA"

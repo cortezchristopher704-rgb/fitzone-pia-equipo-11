@@ -257,7 +257,7 @@ def _mensaje_error_dominio(exc: FitZoneDomainError) -> str:
         (ReservaDuplicadaError, "Ya existe una reserva para esta clase con ese socio."),
         (ReservaNoEncontradaError, "No encontramos una reserva para realizar esta operación."),
         (CancelacionTardiaError, "Ya pasó el límite de tiempo permitido para cancelar esta reserva."),
-        (MembresiaInactivaError, "La membresía no está activa. Consulta con recepción para revisar su vigencia."),
+        (MembresiaInactivaError, None),
         (RecursoNoDisponibleError, "El plan o la clase solicitada no está disponible."),
         (TransicionEstadoInvalidaError, "La operación no puede realizarse porque el estado actual no lo permite."),
         (PrecondicionOperacionError, "No se cumplen los requisitos para realizar esta operación."),
@@ -265,7 +265,7 @@ def _mensaje_error_dominio(exc: FitZoneDomainError) -> str:
     )
     for tipo_error, mensaje in mensajes:
         if isinstance(exc, tipo_error):
-            return mensaje
+            return str(exc) if mensaje is None else mensaje
     return "No fue posible completar la operación. Verifica los datos e inténtalo de nuevo."
 
 
@@ -400,6 +400,27 @@ def actualizar_vigencia_socio(
     SqlAlchemyUnitOfWork(session).commit()
     return {"socio_id": actor_id, "fecha_inicio": dto.fecha_inicio.isoformat(),
             "fecha_fin": dto.fecha_fin.isoformat(), "registrada": True}
+
+
+@app.post("/api/v1/socios/vigencias-demo", tags=["Socios y Accesos"])
+def asignar_vigencias_demo(
+    session: Session = Depends(get_db_session),
+    _administrador_autenticado: str = Depends(requerir_rol_staff("ADMIN")),
+) -> dict[str, Any]:
+    """Asigna 30 días de vigencia únicamente a socios sin fechas registradas."""
+    from datetime import timedelta
+    repo = SqlSocioRepository(session)
+    socios = repo.list_all()
+    inicio = date.today()
+    fin = inicio + timedelta(days=30)
+    actualizados = []
+    for socio in socios:
+        if socio.vigencia is None:
+            socio.vigencia = Vigencia(inicio, fin)
+            repo.save(socio)
+            actualizados.append(socio.actor_id)
+    SqlAlchemyUnitOfWork(session).commit()
+    return {"actualizados": len(actualizados), "omitidos": len(socios)-len(actualizados), "socios_actualizados": actualizados, "fecha_inicio": inicio.isoformat(), "fecha_fin": fin.isoformat()}
 
 
 @app.post("/api/v1/socios/{actor_id}/acceso", tags=["Socios y Accesos"])

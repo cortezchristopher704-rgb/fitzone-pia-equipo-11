@@ -38,7 +38,7 @@ from src.domain.exceptions import (
     SocioBloqueadoError,
     TransicionEstadoInvalidaError,
 )
-from src.domain.models import ClaseProgramada
+from src.domain.models import ClaseProgramada, OperacionMembresia
 from src.domain.value_objects import Vigencia
 from src.infrastructure.csv_loader import (
     evaluar_casos_prueba_csv,
@@ -102,6 +102,18 @@ app = FastAPI(
 class LoginRequestDTO(BaseModel):
     usuario: str = Field(..., min_length=1, max_length=80)
     contrasena: str = Field(..., min_length=1, max_length=200)
+
+
+class LineaOperacionRequestDTO(BaseModel):
+    recurso_id: str = Field(..., min_length=1, max_length=80)
+    cantidad: int = Field(..., gt=0, le=100)
+
+
+class CrearOperacionRequestDTO(BaseModel):
+    operacion_id: str = Field(..., min_length=1, max_length=80)
+    socio_id: str = Field(..., min_length=1, max_length=80)
+    lineas: list[LineaOperacionRequestDTO] = Field(..., min_length=1, max_length=20)
+    promocion_activa: bool = False
 
 
 class ReservaRequestDTO(BaseModel):
@@ -488,6 +500,47 @@ def _serializar_operacion(op) -> dict[str, Any]:
             {"nombre": e.nombre, "detalles": e.detalles} for e in op.eventos
         ],
     }
+
+
+@app.post("/api/v1/operaciones", status_code=status.HTTP_201_CREATED, tags=["Operaciones y Membresías"])
+def crear_solicitud_operacion(
+    dto: CrearOperacionRequestDTO,
+    session: Session = Depends(get_db_session),
+    empleado_autenticado: str = Depends(requerir_rol_staff("RECEPCION")),
+) -> dict[str, Any]:
+    """US-008: recepción registra una solicitud de contratación para un socio."""
+    socios = SqlSocioRepository(session)
+    catalogo = SqlCatalogoRepository(session)
+    operaciones = SqlOperacionRepository(session, socios)
+    if operaciones.get_by_id(dto.operacion_id) is not None:
+        raise HTTPException(status_code=409, detail="Ya existe una operación con ese identificador.")
+    socio = socios.get_by_id(dto.socio_id)
+    if socio is None:
+        raise HTTPException(status_code=404, detail=f"No encontramos al socio {dto.socio_id}.")
+    if not socio.activo:
+        raise HTTPException(status_code=422, detail="No se puede registrar una contratación para un socio inactivo.")
+    operacion = OperacionMembresia(
+        operacion_id=dto.operacion_id,
+        socio=socio,
+        fecha_solicitud=date.today().isoformat(),
+        promocion_activa=dto.promocion_activa,
+        autorizado=True,
+        referencia=f"Recepción: {empleado_autenticado}",
+    )
+    for linea in dto.lineas:
+        plan = catalogo.get_by_id(linea.recurso_id)
+        if plan is None:
+            raise HTTPException(status_code=404, detail=f"No encontramos el plan {linea.recurso_id}.")
+        if not plan.habilitado:
+            raise HTTPException(status_code=422, detail=f"El plan {plan.descripcion} está deshabilitado.")
+        if linea.cantidad > plan.capacidad_o_stock:
+            raise HTTPException(status_code=422, detail=f"No hay stock suficiente para {plan.descripcion}.")
+        operacion.agregar_linea(plan, linea.cantidad)
+    if not operacion.puede_procesarse():
+        raise HTTPException(status_code=422, detail="La solicitud no cumple las precondiciones de contratación.")
+    operaciones.save(operacion)
+    SqlAlchemyUnitOfWork(session).commit()
+    return {**_serializar_operacion(operacion), "registrada_por": empleado_autenticado, "canal": "RECEPCION"}
 
 
 @app.get("/api/v1/operaciones", tags=["Operaciones y Membresías"])

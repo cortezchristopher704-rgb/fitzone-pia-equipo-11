@@ -4,9 +4,12 @@ Control de Acceso en Torniquete, Asistencia/No-Shows y Reportes Analíticos CQRS
 """
 
 from contextlib import asynccontextmanager
+import base64
+import hashlib
 import hmac
+import json
 import os
-from datetime import date, datetime, time as time_type, timedelta
+from datetime import date, datetime, time as time_type, timedelta, timezone
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
@@ -94,6 +97,11 @@ app = FastAPI(
 # ==============================================================================
 # DTOs / ESQUEMAS PYDANTIC DE ENTRADA Y SALIDA
 # ==============================================================================
+
+
+class LoginRequestDTO(BaseModel):
+    usuario: str = Field(..., min_length=1, max_length=80)
+    contrasena: str = Field(..., min_length=1, max_length=200)
 
 
 class ReservaRequestDTO(BaseModel):
@@ -193,25 +201,50 @@ def _mismo_inicio_horario(horario_a: str, horario_b: str) -> bool:
     return False
 
 
+def _codificar_token_sesion(payload: dict[str, Any]) -> str:
+    secreto = os.getenv("FITZONE_SESSION_SECRET", "")
+    if not secreto:
+        raise HTTPException(status_code=503, detail="El inicio de sesión no está configurado.")
+    contenido = base64.urlsafe_b64encode(json.dumps(payload, separators=(",", ":")).encode()).decode().rstrip("=")
+    firma = hmac.new(secreto.encode(), contenido.encode(), hashlib.sha256).hexdigest()
+    return f"{contenido}.{firma}"
+
+
+def _leer_token_sesion(token: str) -> dict[str, Any]:
+    secreto = os.getenv("FITZONE_SESSION_SECRET", "")
+    try:
+        contenido, firma = token.split(".", 1)
+        esperada = hmac.new(secreto.encode(), contenido.encode(), hashlib.sha256).hexdigest()
+        if not secreto or not hmac.compare_digest(firma, esperada):
+            raise ValueError("firma")
+        payload = json.loads(base64.urlsafe_b64decode(contenido + "=" * (-len(contenido) % 4)))
+        if int(payload.get("exp", 0)) < int(datetime.now(timezone.utc).timestamp()):
+            raise ValueError("expirado")
+        return payload
+    except (ValueError, TypeError, KeyError, json.JSONDecodeError):
+        raise HTTPException(status_code=401, detail="Tu sesión no es válida o ha expirado. Inicia sesión nuevamente.")
+
+
 def requerir_rol_staff(rol_esperado: str):
-    """Valida rol y token configurado por entorno; retorna el ID de personal autenticado."""
+    """Valida una sesión firmada; conserva headers internos para compatibilidad de pruebas/API."""
     def dependencia(
-        x_staff_role: str = Header(..., alias="X-Staff-Role"),
-        x_staff_token: str = Header(..., alias="X-Staff-Token"),
-        x_staff_id: str = Header(..., alias="X-Staff-Id"),
+        authorization: str | None = Header(None, alias="Authorization"),
+        x_staff_role: str | None = Header(None, alias="X-Staff-Role"),
+        x_staff_token: str | None = Header(None, alias="X-Staff-Token"),
+        x_staff_id: str | None = Header(None, alias="X-Staff-Id"),
     ) -> str:
+        if authorization and authorization.startswith("Bearer "):
+            payload = _leer_token_sesion(authorization[7:].strip())
+            if payload.get("rol") != rol_esperado:
+                raise HTTPException(status_code=403, detail="Tu cuenta no tiene permisos para realizar esta operación.")
+            return str(payload.get("id", ""))
         token_configurado = os.getenv(f"FITZONE_STAFF_TOKEN_{rol_esperado}")
+        if not all((x_staff_role, x_staff_token, x_staff_id)):
+            raise HTTPException(status_code=401, detail="Inicia sesión para continuar.")
         if not token_configurado:
-            raise HTTPException(
-                status_code=503,
-                detail=f"El acceso del personal no está configurado. Contacta con la persona administradora del sistema.",
-            )
-        if x_staff_role.strip().upper() != rol_esperado or not hmac.compare_digest(
-            x_staff_token, token_configurado
-        ):
-            raise HTTPException(status_code=403, detail="No se pudo validar tu acceso. Verifica tus credenciales y el tipo de cuenta.")
-        if not x_staff_id.strip():
-            raise HTTPException(status_code=403, detail="Es necesario identificar al integrante del personal para continuar.")
+            raise HTTPException(status_code=503, detail="El acceso del personal no está configurado.")
+        if x_staff_role.strip().upper() != rol_esperado or not hmac.compare_digest(x_staff_token, token_configurado):
+            raise HTTPException(status_code=403, detail="No se pudo validar tu acceso.")
         return x_staff_id.strip()
     return dependencia
 
@@ -254,6 +287,33 @@ def _traducir_error_dominio(exc: FitZoneDomainError) -> HTTPException:
     else:
         codigo = status.HTTP_400_BAD_REQUEST
     return HTTPException(status_code=codigo, detail=mensaje)
+
+
+@app.post("/api/v1/auth/login", tags=["Autenticación"])
+def iniciar_sesion(dto: LoginRequestDTO) -> dict[str, Any]:
+    """Autentica cuentas de demostración y emite una sesión firmada con duración limitada."""
+    cuentas = (
+        ("ADMIN", "ADMIN-01", "FITZONE_DEMO_ADMIN_USER", "FITZONE_DEMO_ADMIN_PASSWORD", "Administrador"),
+        ("RECEPCION", "REC-01", "FITZONE_DEMO_RECEPCION_USER", "FITZONE_DEMO_RECEPCION_PASSWORD", "Recepción"),
+        ("INSTRUCTOR", "INST-01", "FITZONE_DEMO_INSTRUCTOR_USER", "FITZONE_DEMO_INSTRUCTOR_PASSWORD", "Instructor"),
+    )
+    for rol, identificador, usuario_env, password_env, nombre_rol in cuentas:
+        usuario = os.getenv(usuario_env, "")
+        contrasena = os.getenv(password_env, "")
+        if usuario and contrasena and hmac.compare_digest(dto.usuario, usuario) and hmac.compare_digest(dto.contrasena, contrasena):
+            expira = int(datetime.now(timezone.utc).timestamp()) + 8 * 60 * 60
+            token = _codificar_token_sesion({"rol": rol, "id": identificador, "exp": expira})
+            return {"access_token": token, "token_type": "bearer", "rol": rol, "id": identificador,
+                    "nombre": nombre_rol, "expires_in": 28800}
+    raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos.")
+
+
+@app.get("/api/v1/auth/me", tags=["Autenticación"])
+def consultar_sesion(authorization: str | None = Header(None, alias="Authorization")) -> dict[str, Any]:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Inicia sesión para continuar.")
+    payload = _leer_token_sesion(authorization[7:].strip())
+    return {"rol": payload["rol"], "id": payload["id"], "exp": payload["exp"]}
 
 
 # ==============================================================================

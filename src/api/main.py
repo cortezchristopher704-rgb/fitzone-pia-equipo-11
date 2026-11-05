@@ -10,6 +10,7 @@ from datetime import date, datetime, time as time_type, timedelta
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -960,3 +961,7 @@ def ejecutar_20_transiciones_csv() -> dict[str, Any]:
         "transiciones_rechazadas": rechazadas,
         "resultados": resultados,
     }
+
+
+# Interfaz web de FitZone: se monta al final para no interceptar las rutas de la API.
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")

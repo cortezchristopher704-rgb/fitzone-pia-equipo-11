@@ -1,8 +1,8 @@
 """Implementaciones concretas de Repositorios SQLAlchemy y Unit of Work para FitZone."""
 
 import json
+from datetime import UTC, date, datetime
 from decimal import Decimal
-from datetime import date, datetime, UTC
 
 from sqlalchemy.orm import Session
 
@@ -21,8 +21,8 @@ from src.infrastructure.database import (
     ClaseProgramadaRow,
     OperacionMembresiaRow,
     PlanDeportivoRow,
-    SocioRow,
     NotificacionOutboxRow,
+    SocioRow,
 )
 
 

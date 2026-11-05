@@ -32,6 +32,7 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
         assert client.get("/api/v1/socios/NO-EXISTE").status_code == 404
 
         admin_headers = {"X-Staff-Role": "ADMIN", "X-Staff-Token": "test-admin-secret", "X-Staff-Id": "ADMIN-01"}
+        client.headers.update(admin_headers)
         r_sin_vigencia = client.post("/api/v1/socios/FIT-C001/acceso")
         assert r_sin_vigencia.status_code == 200
         assert r_sin_vigencia.json()["permitido"] is False
@@ -126,6 +127,14 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
         r_clases = client.get("/api/v1/clases")
         assert r_clases.status_code == 200
         assert len(r_clases.json()) >= 3
+
+        r_sin_acceso_clase = client.post(
+            "/api/v1/clases",
+            json={"clase_id": "CLASE-SIN-AUTH", "disciplina": "Yoga",
+                  "horario": "2026-11-06 09:00", "capacidad_maxima": 5},
+            headers={},
+        )
+        assert r_sin_acceso_clase.status_code == 422 or r_sin_acceso_clase.status_code == 403
 
         r_new_c = client.post(
             "/api/v1/clases",
@@ -272,6 +281,7 @@ def test_new_use_cases_reception_instructor_capacity_and_expiry_alerts(monkeypat
         client.post("/api/v1/seed")
         # Las fechas no vienen en el CSV oficial; se asignan vigencias de prueba explícitas a los socios de esta demo.
         admin_headers = {"X-Staff-Role": "ADMIN", "X-Staff-Token": "test-admin-secret", "X-Staff-Id": "ADMIN-01"}
+        client.headers.update(admin_headers)
         for socio_id in ("FIT-C001", "FIT-C003", "FIT-C005"):
             assert client.put(f"/api/v1/socios/{socio_id}/vigencia", json={
                 "fecha_inicio": (date.today() - timedelta(days=2)).isoformat(),

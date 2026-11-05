@@ -226,7 +226,7 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
             ).status_code
             == 409
         )
-        assert client.post("/api/v1/clases/NO-EXISTE/no-show/FIT-C009").status_code == 404
+        assert client.post("/api/v1/clases/NO-EXISTE/no-show/FIT-C009", headers={"X-Staff-Role": "INSTRUCTOR", "X-Staff-Token": "test-inst-secret", "X-Staff-Id": "INST-01"}).status_code == 404
 
         # Reasignar instructor y cancelar por instructor
         r_reasig = client.post(
@@ -306,7 +306,7 @@ def test_new_use_cases_reception_instructor_capacity_and_expiry_alerts(monkeypat
         r = client.get("/api/v1/clases/CLASE-REC-01/instructor/INST-REC/lista", headers=instructor_headers)
         assert r.status_code == 200
         assert r.json()["total"] == 2
-        assert client.post("/api/v1/clases/CLASE-REC-01/asistencia/FIT-C001").status_code == 401
+        client.headers.clear()\n        assert client.post("/api/v1/clases/CLASE-REC-01/asistencia/FIT-C001").status_code == 401
         assert client.post("/api/v1/clases/CLASE-REC-01/asistencia/FIT-C001", headers=instructor_headers).status_code == 200
         estados_lista = {s["socio_id"]: s["estado"] for s in r.json()["socios"]}
         assert estados_lista["FIT-C001"] == "CONFIRMADA"

@@ -37,7 +37,7 @@ Para eliminar ambigüedades antes de diseñar la arquitectura, el Equipo 11 vali
 | **P12** | ¿Cuáles son las reglas comerciales de contratación de planes y beneficios VIP? | Toda solicitud de operación/membresía inicia en estado `SOLICITADA`, requiere socio activo, al menos un plan/recurso habilitado con stock disponible y autorización. Los socios **Preferentes (VIP)** con importe total `>= $1,500.00 MXN` y **sin promoción activa** reciben un beneficio del **10% de descuento**. |
 | **P13** | ¿Cuál es la duración oficial de cada tipo de clase y cómo se determina la disponibilidad del instructor? | **Pendiente de validar con el stakeholder**; no se asigna una regla sin confirmación. |
 | **P14** | ¿Qué canales oficiales se utilizarán para notificar promociones FIFO, cancelaciones y alertas de vencimiento? | **Pendiente de validar con el stakeholder**; el sistema actual conserva avisos en outbox, sin entrega externa. |
-| **P15** | ¿Qué datos y evidencias debe conservar recepción al registrar reservas u operaciones para un socio? | **Pendiente de validar con el stakeholder**; falta directorio de usuarios y auditoría persistente. |
+| **P15** | ¿Qué datos y evidencias debe conservar recepción al registrar reservas u operaciones para un socio? | **Pendiente de validar con el stakeholder**. Implementación parcial: existe una bitácora persistente de acciones administrativas y validaciones de acceso con actor, rol, entidad, fecha y resultado; aún debe confirmarse si esos datos cubren todos los registros requeridos por recepción. |
 
 ---
 

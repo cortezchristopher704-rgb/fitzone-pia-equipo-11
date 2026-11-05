@@ -3,13 +3,13 @@ Expone endpoints para Operaciones de Membresía, Reservación de Clases, Lista d
 Control de Acceso en Torniquete, Asistencia/No-Shows y Reportes Analíticos CQRS.
 """
 
-from contextlib import asynccontextmanager
 import base64
 import hashlib
 import hmac
 import json
 import os
-from datetime import date, datetime, time as time_type, timedelta, timezone
+from contextlib import asynccontextmanager
+from datetime import UTC, date, datetime, time as time_type, timedelta
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
@@ -230,7 +230,7 @@ def _leer_token_sesion(token: str) -> dict[str, Any]:
         if not secreto or not hmac.compare_digest(firma, esperada):
             raise ValueError("firma")
         payload = json.loads(base64.urlsafe_b64decode(contenido + "=" * (-len(contenido) % 4)))
-        if int(payload.get("exp", 0)) < int(datetime.now(timezone.utc).timestamp()):
+        if int(payload.get("exp", 0)) < int(datetime.now(UTC).timestamp()):
             raise ValueError("expirado")
         return payload
     except (ValueError, TypeError, KeyError, json.JSONDecodeError):
@@ -994,7 +994,7 @@ def reasignar_instructor_clase(
             and _mismo_inicio_horario(otra.horario, clase.horario)), None)
         if conflicto:
             raise HTTPException(status_code=409, detail=(
-                f"El instructor seleccionado ya está asignado a otra clase "
+                "El instructor seleccionado ya está asignado a otra clase "
                 "en el mismo horario"
             ))
         instructor_anterior = clase.instructor_id

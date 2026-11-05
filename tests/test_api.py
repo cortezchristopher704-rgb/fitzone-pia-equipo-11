@@ -128,13 +128,12 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
         assert r_clases.status_code == 200
         assert len(r_clases.json()) >= 3
 
-        r_sin_acceso_clase = client.post(
-            "/api/v1/clases",
-            json={"clase_id": "CLASE-SIN-AUTH", "disciplina": "Yoga",
-                  "horario": "2026-11-06 09:00", "capacidad_maxima": 5},
-            headers={},
-        )
-        assert r_sin_acceso_clase.status_code == 422 or r_sin_acceso_clase.status_code == 403
+        with TestClient(app) as anonymous_client:
+            r_sin_acceso_clase = anonymous_client.post("/api/v1/clases", json={
+                "clase_id": "CLASE-SIN-AUTH", "disciplina": "Yoga",
+                "horario": "2026-11-06 09:00", "capacidad_maxima": 5,
+            })
+            assert r_sin_acceso_clase.status_code == 422
 
         r_new_c = client.post(
             "/api/v1/clases",

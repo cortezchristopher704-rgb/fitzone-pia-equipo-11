@@ -50,9 +50,10 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
         }, headers=admin_headers)
         assert r_vigencia.status_code == 200
         # El CSV oficial no contiene vigencias; para los flujos de demostración se asignan fechas de prueba.
+        from sqlalchemy.orm import Session
+
         from src.api.main import _ENGINE
         from src.infrastructure.database import SocioRow
-        from sqlalchemy.orm import Session
         with Session(_ENGINE) as db:
             for socio_row in db.query(SocioRow).all():
                 if socio_row.actor_id != "FIT-C001":
@@ -338,9 +339,10 @@ def test_new_use_cases_reception_instructor_capacity_and_expiry_alerts(monkeypat
             json={"socio_id": "FIT-C005"}).status_code == 200
 
         # US-016: consulta alertas y verifica un socio con vencimiento dentro del plazo.
+        from sqlalchemy.orm import Session
+
         from src.api.main import _ENGINE
         from src.infrastructure.database import SocioRow
-        from sqlalchemy.orm import Session
         with Session(_ENGINE) as db:
             socio = db.get(SocioRow, "FIT-C001")
             socio.vigencia_inicio = date.today().isoformat()

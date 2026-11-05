@@ -41,6 +41,20 @@
       <p class="tiny">No compartas los tokens ni los incluyas en capturas de pantalla.</p>
     </div>
   </dialog>
+  <dialog id="class-dialog">
+    <form method="dialog" class="dialog-head"><div><div class="eyebrow">GESTIÓN DE CLASES</div><h2>Nueva clase</h2></div><button class="icon-button" aria-label="Cerrar">×</button></form>
+    <div class="dialog-body">
+      <p class="muted">Registra una actividad en la programación de FitZone.</p>
+      <form id="class-form">
+        <label>Clave de clase<input name="clase_id" placeholder="Ej. CLASE-04" required maxlength="30"></label>
+        <label>Disciplina<input name="disciplina" placeholder="Ej. Yoga" required maxlength="80"></label>
+        <label>Fecha y hora<input name="horario" type="datetime-local" required></label>
+        <label>Capacidad máxima<input name="capacidad_maxima" type="number" min="1" max="500" value="15" required></label>
+        <label>Identificador del instructor<input name="instructor_id" value="INST-01" required maxlength="30"></label>
+        <div class="dialog-actions"><button class="btn btn-ghost" type="button" id="cancel-class">Cancelar</button><button class="btn btn-primary" type="submit">Crear clase</button></div>
+      </form>
+    </div>
+  </dialog>
   <div id="toast" class="toast" role="status"></div>
   <script src="/app.js" defer></script>
 </body>

@@ -4,6 +4,7 @@ import os
 
 from sqlalchemy import Boolean, Column, Float, Integer, String, Text, create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 
 class Base(DeclarativeBase):
@@ -95,7 +96,8 @@ def make_engine(db_url: str | None = None):
     if url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
     connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
-    engine = create_engine(url, connect_args=connect_args)
+    opciones_engine = {"poolclass": StaticPool} if url in ("sqlite://", "sqlite:///:memory:") else {}
+    engine = create_engine(url, connect_args=connect_args, **opciones_engine)
     Base.metadata.create_all(engine)
     # Migración aditiva para bases existentes (SQLite y PostgreSQL).
     additions = {

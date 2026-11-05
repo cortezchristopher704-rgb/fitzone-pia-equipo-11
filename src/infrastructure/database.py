@@ -65,6 +65,20 @@ class NotificacionOutboxRow(Base):
     creado_en = Column(String(32), nullable=False)
 
 
+class AuditoriaRow(Base):
+    __tablename__ = "auditoria_operaciones"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ocurrido_en = Column(String(40), nullable=False, index=True)
+    actor_id = Column(String(32), nullable=False, index=True)
+    rol = Column(String(20), nullable=False)
+    accion = Column(String(80), nullable=False, index=True)
+    entidad_tipo = Column(String(40), nullable=False)
+    entidad_id = Column(String(64), nullable=False, index=True)
+    resultado = Column(String(20), nullable=False)
+    detalle = Column(Text, nullable=False, default="")
+
+
 class ClaseProgramadaRow(Base):
     __tablename__ = "clases_programadas"
 

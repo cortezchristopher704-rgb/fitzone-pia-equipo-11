@@ -630,6 +630,7 @@ def listar_clases(session: Session = Depends(get_db_session)) -> list[dict[str, 
             "lista_espera_fifo": c.lista_espera,
             "porcentaje_ocupacion": c.porcentaje_ocupacion,
             "cancelada": c.cancelada,
+            "planes_incluidos": sorted(c.planes_incluidos) if c.planes_incluidos is not None else None,
         }
         for c in repo.list_all()
     ]

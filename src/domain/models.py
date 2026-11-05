@@ -125,7 +125,6 @@ class Socio:
 
     def registrar_asistencia(self) -> None:
         """US-011: La asistencia cambia el estado de la reserva, no borra faltas del mes."""
-        return None
 
     def actualizar_bloqueo(self, fecha_actual: date | None = None) -> None:
         hoy = fecha_actual or date.today()

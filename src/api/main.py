@@ -52,8 +52,8 @@ from src.infrastructure.repositories import (
     SqlCatalogoRepository,
     SqlClaseProgramadaRepository,
     SqlOperacionRepository,
-    SqlSocioRepository,
     SqlOutboxNotificador,
+    SqlSocioRepository,
 )
 
 # Motor global reutilizable

@@ -635,6 +635,39 @@ def listar_clases(session: Session = Depends(get_db_session)) -> list[dict[str, 
     ]
 
 
+@app.get("/api/v1/reservas", tags=["Clases y Reservas"])
+def listar_reservaciones(session: Session = Depends(get_db_session)) -> list[dict[str, Any]]:
+    """Consulta centralizada de reservas, lista de espera y estados por clase."""
+    clases = SqlClaseProgramadaRepository(session).list_all()
+    socios_repo = SqlSocioRepository(session)
+    registros: list[dict[str, Any]] = []
+    for clase in clases:
+        for socio_id, reserva in clase.reservas.items():
+            socio = socios_repo.get_by_id(socio_id)
+            registros.append({
+                "clase_id": clase.clase_id,
+                "disciplina": clase.disciplina,
+                "horario": clase.horario,
+                "socio_id": socio_id,
+                "socio_nombre": socio.nombre if socio else socio_id,
+                "estado": reserva.estado.value,
+                "modalidad": "DROP-IN" if reserva.es_drop_in else "MEMBRESIA",
+            })
+        for socio_id in clase.lista_espera:
+            if socio_id not in clase.reservas:
+                socio = socios_repo.get_by_id(socio_id)
+                registros.append({
+                    "clase_id": clase.clase_id,
+                    "disciplina": clase.disciplina,
+                    "horario": clase.horario,
+                    "socio_id": socio_id,
+                    "socio_nombre": socio.nombre if socio else socio_id,
+                    "estado": "LISTA_ESPERA",
+                    "modalidad": "MEMBRESIA",
+                })
+    return sorted(registros, key=lambda r: (r["horario"], r["disciplina"], r["socio_nombre"]))
+
+
 @app.post(
     "/api/v1/clases",
     status_code=status.HTTP_201_CREATED,

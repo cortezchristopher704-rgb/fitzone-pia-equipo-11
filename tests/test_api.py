@@ -247,10 +247,15 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
             json={"horas_anticipacion": 99.0, "motivo": "Tarde"},
             headers={"X-Staff-Role": "INSTRUCTOR", "X-Staff-Token": "test-inst-secret", "X-Staff-Id": "INST-01"},
         ).status_code == 422
+        horario_instructor_ok = (datetime.now() + timedelta(hours=4)).isoformat(timespec="minutes")
+        assert client.post("/api/v1/clases", json={
+            "clase_id": "CLASE-INSTRUCTOR-OK", "disciplina": "Yoga",
+            "horario": horario_instructor_ok, "capacidad_maxima": 8,
+        }, headers=admin_headers).status_code == 201
         r_canc_inst = client.post(
-            "/api/v1/clases/CLASE-03/cancelar-instructor",
+            "/api/v1/clases/CLASE-INSTRUCTOR-OK/cancelar-instructor",
             json={"horas_anticipacion": 3.0, "motivo": "Clima"},
-            headers={"X-Staff-Role": "INSTRUCTOR", "X-Staff-Token": "test-inst-secret", "X-Staff-Id": "INST-SUPLENTE-10"},
+            headers={"X-Staff-Role": "INSTRUCTOR", "X-Staff-Token": "test-inst-secret", "X-Staff-Id": "INST-01"},
         )
         assert r_canc_inst.status_code == 200
         assert client.post("/api/v1/clases/NO-EXISTE/cancelar-instructor", json={"horas_anticipacion": 3.0, "motivo": "X"}, headers={"X-Staff-Role": "INSTRUCTOR", "X-Staff-Token": "test-inst-secret", "X-Staff-Id": "INST-01"}).status_code == 404

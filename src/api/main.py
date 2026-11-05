@@ -203,46 +203,56 @@ def requerir_rol_staff(rol_esperado: str):
         if not token_configurado:
             raise HTTPException(
                 status_code=503,
-                detail=f"Autenticación de personal no configurada para el rol {rol_esperado}",
+                detail=f"El acceso del personal no está configurado. Contacta con la persona administradora del sistema.",
             )
         if x_staff_role.strip().upper() != rol_esperado or not hmac.compare_digest(
             x_staff_token, token_configurado
         ):
-            raise HTTPException(status_code=403, detail="Credenciales o rol de personal inválidos")
+            raise HTTPException(status_code=403, detail="No se pudo validar tu acceso. Verifica tus credenciales y el tipo de cuenta.")
         if not x_staff_id.strip():
-            raise HTTPException(status_code=403, detail="El identificador del personal es obligatorio")
+            raise HTTPException(status_code=403, detail="Es necesario identificar al integrante del personal para continuar.")
         return x_staff_id.strip()
     return dependencia
 
+def _mensaje_error_dominio(exc: FitZoneDomainError) -> str:
+    """Convierte errores internos del dominio en mensajes claros para quien usa la API."""
+    mensajes = (
+        (ClaseSinCupoError, "Esta clase ya no tiene lugares disponibles."),
+        (SocioBloqueadoError, "No es posible realizar la reserva porque la cuenta tiene una restricción por inasistencias."),
+        (LimiteReservasPlanError, "Alcanzaste el máximo de reservas permitidas por tu plan."),
+        (ReservaDuplicadaError, "Ya existe una reserva para esta clase con ese socio."),
+        (ReservaNoEncontradaError, "No encontramos una reserva para realizar esta operación."),
+        (CancelacionTardiaError, "Ya pasó el límite de tiempo permitido para cancelar esta reserva."),
+        (MembresiaInactivaError, "La membresía no está activa. Consulta con recepción para revisar su vigencia."),
+        (RecursoNoDisponibleError, "El plan o la clase solicitada no está disponible."),
+        (TransicionEstadoInvalidaError, "La operación no puede realizarse porque el estado actual no lo permite."),
+        (PrecondicionOperacionError, "No se cumplen los requisitos para realizar esta operación."),
+        (DatosInvalidosError, "Los datos proporcionados no son válidos. Revisa la información e inténtalo de nuevo."),
+    )
+    for tipo_error, mensaje in mensajes:
+        if isinstance(exc, tipo_error):
+            return mensaje
+    return "No fue posible completar la operación. Verifica los datos e inténtalo de nuevo."
+
+
 def _traducir_error_dominio(exc: FitZoneDomainError) -> HTTPException:
-    """Traduce las excepciones del dominio de FitZone a códigos HTTP semánticos."""
+    """Traduce errores del dominio a códigos HTTP y mensajes comprensibles."""
+    mensaje = _mensaje_error_dominio(exc)
     if isinstance(exc, RecursoNoDisponibleError):
-        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
-    if isinstance(
-        exc,
-        (
-            TransicionEstadoInvalidaError,
-            ReservaDuplicadaError,
-            ClaseSinCupoError,
-            SocioBloqueadoError,
-            LimiteReservasPlanError,
-        ),
-    ):
-        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
-    if isinstance(
-        exc,
-        (
-            DatosInvalidosError,
-            PrecondicionOperacionError,
-            MembresiaInactivaError,
-            CancelacionTardiaError,
-            ReservaNoEncontradaError,
-        ),
-    ):
-        return HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
-        )
-    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+        codigo = status.HTTP_404_NOT_FOUND
+    elif isinstance(exc, (
+        TransicionEstadoInvalidaError, ReservaDuplicadaError, ClaseSinCupoError,
+        SocioBloqueadoError, LimiteReservasPlanError,
+    )):
+        codigo = status.HTTP_409_CONFLICT
+    elif isinstance(exc, (
+        DatosInvalidosError, PrecondicionOperacionError, MembresiaInactivaError,
+        CancelacionTardiaError, ReservaNoEncontradaError,
+    )):
+        codigo = status.HTTP_422_UNPROCESSABLE_CONTENT
+    else:
+        codigo = status.HTTP_400_BAD_REQUEST
+    return HTTPException(status_code=codigo, detail=mensaje)
 
 
 # ==============================================================================
@@ -294,7 +304,7 @@ def obtener_socio(actor_id: str, session: Session = Depends(get_db_session)) -> 
     repo = SqlSocioRepository(session)
     s = repo.get_by_id(actor_id)
     if s is None:
-        raise HTTPException(status_code=404, detail=f"Socio {actor_id} no encontrado")
+        raise HTTPException(status_code=404, detail=f"No encontramos un socio con el número {actor_id}.")
     return {
         "actor_id": s.actor_id,
         "nombre": s.nombre,
@@ -320,7 +330,7 @@ def actualizar_vigencia_socio(
     socio_repo = SqlSocioRepository(session)
     socio = socio_repo.get_by_id(actor_id)
     if socio is None:
-        raise HTTPException(status_code=404, detail=f"Socio {actor_id} no encontrado")
+        raise HTTPException(status_code=404, detail=f"No encontramos un socio con el número {actor_id}.")
     try:
         socio.vigencia = Vigencia(dto.fecha_inicio, dto.fecha_fin)
     except FitZoneDomainError as exc:
@@ -581,7 +591,7 @@ def reservar_desde_recepcion(
 ) -> dict[str, Any]:
     """US-008: permite al personal de recepción registrar una reserva en nombre de un socio."""
     if dto.empleado_id != empleado_autenticado:
-        raise HTTPException(status_code=403, detail="empleado_id no coincide con el personal autenticado")
+        raise HTTPException(status_code=403, detail="El número de empleado no coincide con la cuenta que inició sesión.")
     service = ReservaAppService(
         SqlSocioRepository(session), SqlClaseProgramadaRepository(session), SqlAlchemyUnitOfWork(session)
     )
@@ -600,11 +610,11 @@ def consultar_lista_instructor(
     """US-009: el instructor consulta socios confirmados, asistidos y en lista de espera."""
     clase = SqlClaseProgramadaRepository(session).get_by_id(clase_id)
     if clase is None:
-        raise HTTPException(status_code=404, detail=f"Clase {clase_id} no encontrada")
+        raise HTTPException(status_code=404, detail=f"No encontramos la clase {clase_id}.")
     if instructor_id != instructor_autenticado:
-        raise HTTPException(status_code=403, detail="instructor_id no coincide con el personal autenticado")
+        raise HTTPException(status_code=403, detail="El número de instructor no coincide con la cuenta que inició sesión.")
     if clase.instructor_id != instructor_autenticado:
-        raise HTTPException(status_code=403, detail="El instructor no está asignado a esta clase")
+        raise HTTPException(status_code=403, detail="No tienes asignada esta clase y no puedes consultar su lista.")
     socios_repo = SqlSocioRepository(session)
     lista = []
     for socio_id, reserva in clase.reservas.items():
@@ -627,7 +637,7 @@ def actualizar_capacidad_clase(
     uow = SqlAlchemyUnitOfWork(session)
     clase = repo.get_by_id(clase_id)
     if clase is None:
-        raise HTTPException(status_code=404, detail=f"Clase {clase_id} no encontrada")
+        raise HTTPException(status_code=404, detail=f"No encontramos la clase {clase_id}.")
     try:
         clase.actualizar_capacidad(dto.capacidad_maxima)
         repo.save(clase)
@@ -648,7 +658,7 @@ def actualizar_planes_incluidos_clase(
     uow = SqlAlchemyUnitOfWork(session)
     clase = repo.get_by_id(clase_id)
     if clase is None:
-        raise HTTPException(status_code=404, detail=f"Clase {clase_id} no encontrada")
+        raise HTTPException(status_code=404, detail=f"No encontramos la clase {clase_id}.")
     try:
         clase.actualizar_planes_incluidos(set(dto.planes_incluidos))
         repo.save(clase)
@@ -705,7 +715,7 @@ def cancelar_reserva_en_clase(
     """CU-03 (US-004, US-005): Cancela reserva validando cut-off de 3h y promoviendo en FIFO."""
     clase = SqlClaseProgramadaRepository(session).get_by_id(clase_id)
     if clase is None:
-        raise HTTPException(status_code=404, detail=f"Clase {clase_id} no encontrada")
+        raise HTTPException(status_code=404, detail=f"No encontramos la clase {clase_id}.")
     try:
         horas_reales = _calcular_horas_hasta_clase(clase.horario)
         service = ReservaAppService(
@@ -741,7 +751,7 @@ def confirmar_promocion_lista_espera(
     uow = SqlAlchemyUnitOfWork(session)
     clase = repo.get_by_id(clase_id)
     if clase is None:
-        raise HTTPException(status_code=404, detail=f"Clase {clase_id} no encontrada")
+        raise HTTPException(status_code=404, detail=f"No encontramos la clase {clase_id}.")
     try:
         clase.confirmar_promocion(socio_id)
         repo.save(clase)
@@ -761,7 +771,7 @@ def procesar_expiracion_promocion(
     uow = SqlAlchemyUnitOfWork(session)
     clase = repo.get_by_id(clase_id)
     if clase is None:
-        raise HTTPException(status_code=404, detail=f"Clase {clase_id} no encontrada")
+        raise HTTPException(status_code=404, detail=f"No encontramos la clase {clase_id}.")
     siguiente = clase.expirar_promocion()
     repo.save(clase)
     uow.commit()
@@ -794,7 +804,7 @@ def reasignar_instructor_clase(
     uow = SqlAlchemyUnitOfWork(session)
     clase = repo.get_by_id(clase_id)
     if clase is None:
-        raise HTTPException(status_code=404, detail=f"Clase {clase_id} no encontrada")
+        raise HTTPException(status_code=404, detail=f"No encontramos la clase {clase_id}.")
     try:
         conflicto = next((otra for otra in repo.list_all()
             if otra.clase_id != clase.clase_id and not otra.cancelada
@@ -802,7 +812,7 @@ def reasignar_instructor_clase(
             and _mismo_inicio_horario(otra.horario, clase.horario)), None)
         if conflicto:
             raise HTTPException(status_code=409, detail=(
-                f"El instructor {dto.nuevo_instructor_id} ya está asignado a {conflicto.clase_id} "
+                f"El instructor seleccionado ya está asignado a otra clase "
                 "en el mismo horario"
             ))
         instructor_anterior = clase.instructor_id
@@ -840,9 +850,9 @@ def cancelar_clase_por_instructor(
     uow = SqlAlchemyUnitOfWork(session)
     clase = repo.get_by_id(clase_id)
     if clase is None:
-        raise HTTPException(status_code=404, detail=f"Clase {clase_id} no encontrada")
+        raise HTTPException(status_code=404, detail=f"No encontramos la clase {clase_id}.")
     if instructor_autenticado != clase.instructor_id:
-        raise HTTPException(status_code=403, detail="El instructor autenticado no está asignado a esta clase")
+        raise HTTPException(status_code=403, detail="No tienes asignada esta clase y no puedes realizar esta operación.")
     try:
         horas_reales = _calcular_horas_hasta_clase(clase.horario)
         # El campo legacy dto.horas_anticipacion se ignora: se calcula con el horario persistido.

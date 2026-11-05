@@ -313,7 +313,7 @@ def iniciar_sesion(dto: LoginRequestDTO) -> dict[str, Any]:
         usuario = os.getenv(usuario_env, "")
         contrasena = os.getenv(password_env, "")
         if usuario and contrasena and hmac.compare_digest(dto.usuario, usuario) and hmac.compare_digest(dto.contrasena, contrasena):
-            expira = int(datetime.now(timezone.utc).timestamp()) + 8 * 60 * 60
+            expira = int(datetime.now(UTC).timestamp()) + 8 * 60 * 60
             token = _codificar_token_sesion({"rol": rol, "id": identificador, "exp": expira})
             return {"access_token": token, "token_type": "bearer", "rol": rol, "id": identificador,
                     "nombre": nombre_rol, "expires_in": 28800}

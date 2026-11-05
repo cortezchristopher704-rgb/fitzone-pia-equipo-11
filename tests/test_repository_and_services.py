@@ -1,7 +1,7 @@
 """Pruebas de Integración de Base de Datos SQLite (Commit / Rollback) y Dobles de Prueba (Mocks)."""
 
-from decimal import Decimal
 from datetime import date, timedelta
+from decimal import Decimal
 from unittest.mock import Mock
 
 import pytest
@@ -26,7 +26,7 @@ from src.domain import (
     Socio,
     TransicionEstadoInvalidaError,
 )
-from src.domain.value_objects import Money
+from src.domain.value_objects import Money, Vigencia
 from src.infrastructure import (
     SqlAlchemyUnitOfWork,
     SqlCatalogoRepository,
@@ -95,8 +95,6 @@ def test_application_services_with_mocks_and_uow():
     assert resumen["operaciones"] == 60
 
     socio_repo = SqlSocioRepository(session)
-    from src.domain.value_objects import Vigencia
-    from datetime import date, timedelta
     for socio_demo in socio_repo.list_all():
         socio_demo.vigencia = Vigencia(date.today() - timedelta(days=1), date.today() + timedelta(days=365))
         socio_repo.save(socio_demo)

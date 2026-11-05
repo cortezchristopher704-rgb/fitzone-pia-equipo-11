@@ -90,6 +90,10 @@ def get_database_url() -> str:
 
 def make_engine(db_url: str | None = None):
     url = db_url or get_database_url()
+    # SQLAlchemy 2.1 usa psycopg 3 por defecto para URLs postgresql://.
+    # El proyecto instala psycopg2-binary, por lo que fijamos explícitamente ese driver.
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
     connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
     engine = create_engine(url, connect_args=connect_args)
     Base.metadata.create_all(engine)

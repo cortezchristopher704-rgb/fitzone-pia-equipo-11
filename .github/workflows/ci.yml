@@ -38,3 +38,35 @@ jobs:
           FITZONE_DATA_DIR: ./datos
         run: |
           pytest -v --cov=src --cov-report=term-missing --cov-fail-under=80 tests
+
+      - name: Validar configuración Docker Compose
+        run: docker compose config
+
+      - name: Construir imágenes y levantar PostgreSQL, API y worker
+        run: |
+          docker compose build
+          docker compose up -d db app worker
+
+      - name: Verificar API y arranque del worker en contenedores
+        run: |
+          for intento in $(seq 1 30); do
+            if curl --fail --silent http://localhost:8000/health; then
+              echo "API disponible"
+              break
+            fi
+            if [ "$intento" -eq 30 ]; then
+              echo "La API no respondió dentro del tiempo esperado"
+              docker compose logs app db worker
+              exit 1
+            fi
+            sleep 2
+          done
+          docker compose logs worker
+          docker compose ps
+
+      - name: Ejecutar pruebas dentro del contenedor de tests
+        run: docker compose run --rm tests
+
+      - name: Detener y limpiar contenedores
+        if: always()
+        run: docker compose down -v

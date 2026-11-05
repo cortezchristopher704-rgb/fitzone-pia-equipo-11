@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>FitZone | Gestión del gimnasio</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" data-view="inicio"><span class="brand-mark">F</span><span>FIT<span class="brand-accent">ZONE</span><small>GESTIÓN DEPORTIVA</small></span></a>
+      <div class="side-label">MENÚ PRINCIPAL</div>
+      <nav id="navigation">
+        <button class="nav-link active" data-view="inicio"><span>⌂</span> Inicio</button>
+        <button class="nav-link" data-view="socios"><span>♙</span> Socios</button>
+        <button class="nav-link" data-view="clases"><span>▦</span> Clases</button>
+        <button class="nav-link" data-view="reservas"><span>＋</span> Reservaciones</button>
+        <button class="nav-link" data-view="reportes"><span>▤</span> Reportes</button>
+      </nav>
+      <div class="sidebar-bottom"><span class="status-dot"></span> Sistema conectado <small>FitZone · Equipo 11</small></div>
+    </aside>
+    <main class="main-area">
+      <header class="topbar">
+        <div><div class="eyebrow">FITZONE / <span id="section-name">INICIO</span></div><h1 id="page-title">Panel general</h1></div>
+        <div class="top-actions"><span class="api-status" id="api-status"><i></i> Conectando...</span><button class="btn btn-ghost" id="settings-button">⚙ Acceso de personal</button></div>
+      </header>
+      <section id="view" aria-live="polite"><div class="loading">Cargando información del gimnasio…</div></section>
+      <footer>© 2026 FitZone · Sistema integral de gestión · Equipo 11</footer>
+    </main>
+  </div>
+  <dialog id="settings-dialog">
+    <form method="dialog" class="dialog-head"><div><div class="eyebrow">CONFIGURACIÓN</div><h2>Acceso de personal</h2></div><button class="icon-button" aria-label="Cerrar">×</button></form>
+    <div class="dialog-body">
+      <p class="muted">Las operaciones administrativas requieren las credenciales configuradas en el servidor. Se guardan únicamente en esta sesión del navegador.</p>
+      <label>Rol<select id="staff-role"><option value="ADMIN">Administrador</option><option value="RECEPCION">Recepción</option><option value="INSTRUCTOR">Instructor</option></select></label>
+      <label>Identificador de personal<input id="staff-id" placeholder="Ej. ADMIN-01"></label>
+      <label>Token de acceso<input id="staff-token" type="password" placeholder="Token configurado en Render"></label>
+      <div class="dialog-actions"><button class="btn btn-ghost" id="clear-credentials" type="button">Limpiar</button><button class="btn btn-primary" id="save-credentials" type="button">Guardar acceso</button></div>
+      <p class="tiny">No compartas los tokens ni los incluyas en capturas de pantalla.</p>
+    </div>
+  </dialog>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

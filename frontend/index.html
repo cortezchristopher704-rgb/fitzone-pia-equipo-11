@@ -24,21 +24,22 @@
     <main class="main-area">
       <header class="topbar">
         <div><div class="eyebrow">FITZONE / <span id="section-name">INICIO</span></div><h1 id="page-title">Panel general</h1></div>
-        <div class="top-actions"><span class="api-status" id="api-status"><i></i> Conectando...</span><button class="btn btn-ghost" id="settings-button">⚙ Acceso de personal</button></div>
+        <div class="top-actions"><span class="api-status" id="api-status"><i></i> Conectando...</span><button class="btn btn-ghost" id="settings-button">Iniciar sesión</button></div>
       </header>
       <section id="view" aria-live="polite"><div class="loading">Cargando información del gimnasio…</div></section>
       <footer>© 2026 FitZone · Sistema integral de gestión · Equipo 11</footer>
     </main>
   </div>
   <dialog id="settings-dialog">
-    <form method="dialog" class="dialog-head"><div><div class="eyebrow">CONFIGURACIÓN</div><h2>Acceso de personal</h2></div><button class="icon-button" aria-label="Cerrar">×</button></form>
+    <form method="dialog" class="dialog-head"><div><div class="eyebrow">ÁREA DE PERSONAL</div><h2>Iniciar sesión</h2></div><button class="icon-button" aria-label="Cerrar">×</button></form>
     <div class="dialog-body">
-      <p class="muted">Las operaciones administrativas requieren las credenciales configuradas en el servidor. Se guardan únicamente en esta sesión del navegador.</p>
-      <label>Rol<select id="staff-role"><option value="ADMIN">Administrador</option><option value="RECEPCION">Recepción</option><option value="INSTRUCTOR">Instructor</option></select></label>
-      <label>Identificador de personal<input id="staff-id" placeholder="Ej. ADMIN-01"></label>
-      <label>Token de acceso<input id="staff-token" type="password" placeholder="Token configurado en Render"></label>
-      <div class="dialog-actions"><button class="btn btn-ghost" id="clear-credentials" type="button">Limpiar</button><button class="btn btn-primary" id="save-credentials" type="button">Guardar acceso</button></div>
-      <p class="tiny">No compartas los tokens ni los incluyas en capturas de pantalla.</p>
+      <p class="muted">Ingresa con tu cuenta de FitZone. El sistema identificará automáticamente tu tipo de acceso.</p>
+      <form id="login-form">
+        <label>Usuario<input id="login-user" autocomplete="username" placeholder="Escribe tu usuario" required></label>
+        <label>Contraseña<input id="login-password" type="password" autocomplete="current-password" placeholder="Escribe tu contraseña" required></label>
+        <div class="dialog-actions"><button class="btn btn-ghost" type="button" id="clear-credentials">Cerrar sesión</button><button class="btn btn-primary" type="submit" id="login-submit">Entrar</button></div>
+        <p class="tiny">Las funciones disponibles dependen del perfil asignado a tu cuenta.</p>
+      </form>
     </div>
   </dialog>
   <dialog id="class-dialog">

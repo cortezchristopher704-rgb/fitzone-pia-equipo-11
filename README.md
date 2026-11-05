@@ -12,6 +12,7 @@
 
 ### Enlaces Oficiales del Proyecto
 - **Repositorio de GitHub:** `https://github.com/cortezchristopher704-rgb/fitzone-pia-equipo-11`
+- **Aplicación web FitZone (Producción en Render):** `https://fitzone-api-kavw.onrender.com/`
 - **Documentación Interactiva Swagger UI (Producción en Render):** `https://fitzone-api-kavw.onrender.com/docs`
 - **Healthcheck de producción:** `https://fitzone-api-kavw.onrender.com/health`
 - **Swagger UI local:** `http://127.0.0.1:8000/docs`
@@ -28,11 +29,16 @@ Este proyecto materializa la solución integral de software basada en lógica de
 
 ---
 
-## 2. Estructura del Repositorio
+## 2. Interfaz web de FitZone
+La aplicación web está disponible en la raíz del servicio desplegado. Incluye panel general, consulta de socios, clases programadas, registro/cancelación de reservaciones y reportes de ocupación e inasistencias. La interfaz consume la API REST del mismo servicio; no utiliza datos simulados.
+
+Las operaciones de administración que requieren credenciales utilizan el panel **Acceso de personal**. Se deben introducir los tokens configurados en las variables de entorno de Render; el navegador los conserva únicamente durante la sesión. No se deben publicar ni compartir esos tokens.
+
+## 3. Estructura del Repositorio
 
 ```text
 fitzone-pia/
-├── docs/
+├── frontend/\n│   ├── index.html                                # Interfaz de usuario\n│   ├── styles.css                                # Diseño adaptable\n│   └── app.js                                    # Consumo de API REST\n├── docs/
 │   ├── BRD.md                                      # BRD + 20 User Stories/Gherkin + Glosario + Trazabilidad
 │   ├── architecture/
 │   │   ├── ARCHITECTURE_AND_ADRS.md                # DDD, UML, SOLID y ADRs (ADR-01 a ADR-04)
@@ -70,7 +76,7 @@ fitzone-pia/
 
 ---
 
-## 3. Instrucciones de Instalación y Ejecución Local
+## 4. Instrucciones de Instalación y Ejecución Local
 
 ### 3.1 Crear entorno virtual e instalar dependencias
 ```powershell
@@ -118,7 +124,7 @@ El reporte calcula la tasa histórica con reservas que terminaron en `ASISTIDA` 
 
 ---
 
-## 4. Ejecución con Docker Compose (DB + App + Tests)
+## 5. Ejecución con Docker Compose (DB + App + Tests)
 
 ```powershell
 # Copiar archivo de variables de entorno

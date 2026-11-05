@@ -29,6 +29,9 @@ jobs:
       - name: Análisis estático de código con Ruff (Linter)
         run: ruff check src tests
 
+      - name: Validar sintaxis del frontend JavaScript
+        run: node --check frontend/app.js
+
       - name: Ejecutar Suite de Pruebas y Validar Cobertura >= 80%
         env:
           DATABASE_URL: "sqlite:///./fitzone_ci.sqlite3"

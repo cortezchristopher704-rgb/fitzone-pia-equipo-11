@@ -33,7 +33,9 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
 
         admin_headers = {"X-Staff-Role": "ADMIN", "X-Staff-Token": "test-admin-secret", "X-Staff-Id": "ADMIN-01"}
         client.headers.update(admin_headers)
-        r_sin_vigencia = client.post("/api/v1/socios/FIT-C001/acceso")
+        reception_headers = {"X-Staff-Role": "RECEPCION", "X-Staff-Token": "test-reception-secret", "X-Staff-Id": "REC-01"}
+        monkeypatch.setenv("FITZONE_STAFF_TOKEN_RECEPCION", "test-reception-secret")
+        r_sin_vigencia = client.post("/api/v1/socios/FIT-C001/acceso", headers=reception_headers)
         assert r_sin_vigencia.status_code == 200
         assert r_sin_vigencia.json()["permitido"] is False
         assert r_sin_vigencia.json()["motivo"] == "Vigencia de membresía no registrada"
@@ -71,7 +73,7 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
         assert r_acc_den.status_code == 200
         assert r_acc_den.json()["permitido"] is False
 
-        assert client.post("/api/v1/socios/NO-EXISTE/acceso").status_code == 404
+        assert client.post("/api/v1/socios/NO-EXISTE/acceso", headers=reception_headers).status_code == 404
 
         r_cat = client.get("/api/v1/catalogo")
         assert r_cat.status_code == 200
@@ -94,7 +96,7 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
         assert r_eval.json()["beneficio_preferente"] is True
 
         # Aprobar FIT-O001 (200) y tratar de aprobar por segunda vez (409 Conflict)
-        r_ap1 = client.post("/api/v1/operaciones/FIT-O001/aprobar")
+        assert client.post("/api/v1/operaciones/FIT-O001/aprobar").status_code == 200
         assert r_ap1.status_code == 200
         assert r_ap1.json()["estado"] == "ACTIVA"
 
@@ -123,6 +125,11 @@ def test_api_end_to_end_flows_and_status_codes(monkeypatch):
         assert r_canc_op.status_code == 200
         assert r_canc_op.json()["estado"] == "CANCELADA"
         assert client.post("/api/v1/operaciones/FIT-O002/cancelar").status_code == 409
+        audit = client.get("/api/v1/auditoria")
+        assert audit.status_code == 200
+        assert any(row["accion"] == "APROBAR_MEMBRESIA" for row in audit.json())
+        assert any(row["accion"] == "VALIDAR_ACCESO" for row in audit.json())
+        assert client.get("/api/v1/auditoria", headers=reception_headers).status_code == 403
 
         # 4. Clases, Reservas, Lista de Espera FIFO, Cancelaciones y No-Shows
         r_clases = client.get("/api/v1/clases")

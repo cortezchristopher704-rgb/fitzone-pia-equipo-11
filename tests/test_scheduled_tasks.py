@@ -230,8 +230,8 @@ def test_membership_expiry_transitions_active_contract_to_expired():
 
 
 def test_worker_daily_alerts_are_persisted_to_admin_outbox(monkeypatch):
-    from src.jobs.worker import ejecutar_ciclo
     from src.infrastructure.database import NotificacionOutboxRow
+    from src.jobs.worker import ejecutar_ciclo
 
     ahora = datetime.now()
     monkeypatch.setenv("FITZONE_ALERTA_HORA", f"{ahora.hour:02d}:00")

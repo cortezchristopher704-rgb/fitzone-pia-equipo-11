@@ -46,7 +46,7 @@ from src.infrastructure.csv_loader import (
     evaluar_transiciones_csv,
     poblar_base_de_datos,
 )
-from src.infrastructure.database import make_engine, make_session
+from src.infrastructure.database import AuditoriaRow, make_engine, make_session
 from src.infrastructure.repositories import (
     SqlAlchemyUnitOfWork,
     SqlCatalogoRepository,
@@ -437,14 +437,51 @@ def asignar_vigencias_demo(
     return {"actualizados": len(actualizados), "omitidos": len(socios)-len(actualizados), "socios_actualizados": actualizados, "fecha_inicio": inicio.isoformat(), "fecha_fin": fin.isoformat()}
 
 
+def _registrar_auditoria(
+    session: Session, *, actor_id: str, rol: str, accion: str,
+    entidad_tipo: str, entidad_id: str, resultado: str = "EXITOSO", detalle: str = "",
+) -> None:
+    """Persiste quién realizó una acción operativa y sobre qué entidad."""
+    session.add(AuditoriaRow(
+        ocurrido_en=datetime.now(UTC).isoformat(),
+        actor_id=actor_id,
+        rol=rol,
+        accion=accion,
+        entidad_tipo=entidad_tipo,
+        entidad_id=entidad_id,
+        resultado=resultado,
+        detalle=detalle[:2000],
+    ))
+    session.commit()
+
+
+@app.get("/api/v1/auditoria", tags=["Auditoría"])
+def listar_auditoria(
+    limite: int = 100,
+    session: Session = Depends(get_db_session),
+    _: str = Depends(requerir_rol_staff("ADMIN")),
+) -> list[dict[str, Any]]:
+    """P15: consulta administrativa del historial de acciones operativas."""
+    limite = max(1, min(limite, 500))
+    rows = session.query(AuditoriaRow).order_by(AuditoriaRow.id.desc()).limit(limite).all()
+    return [{
+        "id": row.id, "ocurrido_en": row.ocurrido_en, "actor_id": row.actor_id,
+        "rol": row.rol, "accion": row.accion, "entidad_tipo": row.entidad_tipo,
+        "entidad_id": row.entidad_id, "resultado": row.resultado, "detalle": row.detalle,
+    } for row in rows]
+
+
 @app.post("/api/v1/socios/{actor_id}/acceso", tags=["Socios y Accesos"])
 def validar_acceso_torniquete(
-    actor_id: str, session: Session = Depends(get_db_session)
+    actor_id: str, session: Session = Depends(get_db_session),
+    empleado_autenticado: str = Depends(requerir_rol_staff("RECEPCION")),
 ) -> dict[str, Any]:
     """CU-04 (US-006, US-007): Valida ingreso físico en recepción según vigencia de membresía."""
     service = ControlAccesoAppService(SqlSocioRepository(session))
     try:
-        return service.validar_ingreso(actor_id)
+        resultado = service.validar_ingreso(actor_id)
+        _registrar_auditoria(session, actor_id=empleado_autenticado, rol="RECEPCION", accion="VALIDAR_ACCESO", entidad_tipo="SOCIO", entidad_id=actor_id, resultado="PERMITIDO" if resultado.get("permitido") else "DENEGADO", detalle=resultado.get("motivo", ""))
+        return resultado
     except FitZoneDomainError as exc:
         raise _traducir_error_dominio(exc)
 
@@ -542,6 +579,7 @@ def crear_solicitud_operacion(
         raise HTTPException(status_code=422, detail="La solicitud no cumple las precondiciones de contratación.")
     operaciones.save(operacion)
     SqlAlchemyUnitOfWork(session).commit()
+    _registrar_auditoria(session, actor_id=empleado_autenticado, rol="RECEPCION", accion="CREAR_SOLICITUD_MEMBRESIA", entidad_tipo="OPERACION", entidad_id=dto.operacion_id, detalle=f"Socio {dto.socio_id}")
     return {**_serializar_operacion(operacion), "registrada_por": empleado_autenticado, "canal": "RECEPCION"}
 
 
@@ -584,7 +622,8 @@ def evaluar_operacion_specifications(
 
 @app.post("/api/v1/operaciones/{operacion_id}/aprobar", tags=["Operaciones y Membresías"])
 def aprobar_operacion(
-    operacion_id: str, session: Session = Depends(get_db_session)
+    operacion_id: str, session: Session = Depends(get_db_session),
+    empleado_autenticado: str = Depends(requerir_rol_staff("ADMIN")),
 ) -> dict[str, Any]:
     """Transición SOLICITADA -> ACTIVA validando Specifications."""
     socio_repo = SqlSocioRepository(session)
@@ -596,6 +635,7 @@ def aprobar_operacion(
     )
     try:
         op = service.aprobar_operacion(operacion_id)
+        _registrar_auditoria(session, actor_id=empleado_autenticado, rol="ADMIN", accion="APROBAR_MEMBRESIA", entidad_tipo="OPERACION", entidad_id=operacion_id, detalle=f"Socio {op.socio.actor_id}")
         return _serializar_operacion(op)
     except FitZoneDomainError as exc:
         raise _traducir_error_dominio(exc)
@@ -606,6 +646,7 @@ def suspender_operacion(
     operacion_id: str,
     body: MotivoRequestDTO | None = None,
     session: Session = Depends(get_db_session),
+    empleado_autenticado: str = Depends(requerir_rol_staff("ADMIN")),
 ) -> dict[str, Any]:
     """Transición ACTIVA -> SUSPENDIDA."""
     socio_repo = SqlSocioRepository(session)
@@ -618,6 +659,7 @@ def suspender_operacion(
     try:
         motivo = body.motivo if body else "Suspensión administrativa"
         op = service.suspender_operacion(operacion_id, motivo)
+        _registrar_auditoria(session, actor_id=empleado_autenticado, rol="ADMIN", accion="SUSPENDER_MEMBRESIA", entidad_tipo="OPERACION", entidad_id=operacion_id, detalle=motivo)
         return _serializar_operacion(op)
     except FitZoneDomainError as exc:
         raise _traducir_error_dominio(exc)
@@ -625,7 +667,8 @@ def suspender_operacion(
 
 @app.post("/api/v1/operaciones/{operacion_id}/vencer", tags=["Operaciones y Membresías"])
 def vencer_operacion(
-    operacion_id: str, session: Session = Depends(get_db_session)
+    operacion_id: str, session: Session = Depends(get_db_session),
+    empleado_autenticado: str = Depends(requerir_rol_staff("ADMIN")),
 ) -> dict[str, Any]:
     """Transición ACTIVA/SUSPENDIDA -> VENCIDA y cancelación de reservas activas (US-018)."""
     socio_repo = SqlSocioRepository(session)
@@ -638,6 +681,7 @@ def vencer_operacion(
     )
     try:
         op = service.vencer_operacion(operacion_id, clase_repo=clase_repo)
+        _registrar_auditoria(session, actor_id=empleado_autenticado, rol="ADMIN", accion="VENCER_MEMBRESIA", entidad_tipo="OPERACION", entidad_id=operacion_id, detalle=f"Socio {op.socio.actor_id}")
         return _serializar_operacion(op)
     except FitZoneDomainError as exc:
         raise _traducir_error_dominio(exc)
@@ -648,6 +692,7 @@ def cancelar_operacion(
     operacion_id: str,
     body: MotivoRequestDTO | None = None,
     session: Session = Depends(get_db_session),
+    empleado_autenticado: str = Depends(requerir_rol_staff("ADMIN")),
 ) -> dict[str, Any]:
     """Transición SOLICITADA -> CANCELADA."""
     socio_repo = SqlSocioRepository(session)
@@ -660,6 +705,7 @@ def cancelar_operacion(
     try:
         motivo = body.motivo if body else "Cancelación solicitada"
         op = service.cancelar_operacion(operacion_id, motivo)
+        _registrar_auditoria(session, actor_id=empleado_autenticado, rol="ADMIN", accion="CANCELAR_SOLICITUD", entidad_tipo="OPERACION", entidad_id=operacion_id, detalle=motivo)
         return _serializar_operacion(op)
     except FitZoneDomainError as exc:
         raise _traducir_error_dominio(exc)

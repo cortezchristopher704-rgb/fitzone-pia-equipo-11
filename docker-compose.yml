@@ -43,7 +43,7 @@ services:
         condition: service_healthy
     environment:
       APP_ENV: testing
-      DATABASE_URL: "sqlite:///:memory:"
+      DATABASE_URL: "sqlite:///./fitzone_compose_tests.sqlite3"
       FITZONE_DATA_DIR: /app/datos
     command: ["pytest", "-v", "--cov=src", "--cov-report=term-missing", "--cov-fail-under=80", "tests"]
 

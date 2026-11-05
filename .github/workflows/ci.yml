@@ -62,6 +62,7 @@ jobs:
             sleep 2
           done
           docker compose logs worker
+          docker compose logs worker | grep -q "Worker FitZone iniciado"
           docker compose ps
 
       - name: Ejecutar pruebas dentro del contenedor de tests

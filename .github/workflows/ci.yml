@@ -1,0 +1,37 @@
+name: FitZone PIA — CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  quality-and-tests:
+    name: Linter, Unit & Integration Tests & Coverage >= 80%
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código fuente
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Instalar dependencias del proyecto
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Análisis estático de código con Ruff (Linter)
+        run: ruff check src tests
+
+      - name: Ejecutar Suite de Pruebas y Validar Cobertura >= 80%
+        env:
+          DATABASE_URL: "sqlite:///:memory:"
+          FITZONE_DATA_DIR: ./datos
+        run: |
+          pytest -v --cov=src --cov-report=term-missing --cov-fail-under=80 tests

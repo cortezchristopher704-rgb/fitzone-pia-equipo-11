@@ -1,0 +1,21 @@
+﻿caso_id,operacion_id,accion_sugerida,estado_inicial,resultado_alumno,instrucciones
+FIT-S001,FIT-O001,completar,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S002,FIT-O002,cancelar,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S003,FIT-O003,repetir_aprobacion,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S004,FIT-O004,saltar_estado,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S005,FIT-O005,aprobar,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S006,FIT-O006,completar,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S007,FIT-O007,cancelar,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S008,FIT-O008,repetir_aprobacion,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S009,FIT-O009,saltar_estado,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S010,FIT-O010,aprobar,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S011,FIT-O011,completar,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S012,FIT-O012,cancelar,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S013,FIT-O013,repetir_aprobacion,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S014,FIT-O014,saltar_estado,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S015,FIT-O015,aprobar,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S016,FIT-O016,completar,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S017,FIT-O017,cancelar,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S018,FIT-O018,repetir_aprobacion,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S019,FIT-O019,saltar_estado,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion
+FIT-S020,FIT-O020,aprobar,SOLICITADA,PENDIENTE,Ejecutar la operacion y registrar evento o excepcion

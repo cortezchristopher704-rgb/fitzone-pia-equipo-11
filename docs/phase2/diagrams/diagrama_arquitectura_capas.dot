@@ -1,0 +1,14 @@
+digraph A {
+  rankdir=TB; fontname="Helvetica"; bgcolor="white"; nodesep=0.5; ranksep=0.6; compound=true;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=12, margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=10];
+  CL [label="Cliente / Swagger UI (/docs)\nRecepción · Instructor · Administrador · Socio", fillcolor="#eeeeee"];
+  API [label="API — src/api\nFastAPI · DTOs Pydantic · traducción de errores a 200/201/404/409/422", fillcolor="#fde8e8"];
+  APP [label="APLICACIÓN — src/application\nCasos de uso (Membresia / Reserva / Asistencia / ControlAcceso) · CQRS Query · Puertos (Protocol)", fillcolor="#fff6d6"];
+  DOM [label="DOMINIO — src/domain (sin dependencias externas)\nAggregates · Value Objects · Specifications (&,|,~) · State Machine · Domain Events · Domain Service", fillcolor="#e4f4ea"];
+  INF [label="INFRAESTRUCTURA — src/infrastructure\nRepositorios SQLAlchemy · Unit of Work · csv_loader", fillcolor="#e6ecf8"];
+  DB [label="Base de datos\nSQLite (local) · PostgreSQL (Docker Compose / producción)", shape=cylinder, fillcolor="#eeeeee"];
+  CSV [label="CSV paquete 11_FitZone\n(40 actores · 20 planes · 60 operaciones)", shape=note, fillcolor="#eeeeee"];
+  CL -> API; API -> APP; APP -> DOM [label="invoca"]; INF -> APP [label="implementa los puertos\n(inversión de dependencias)", style=dashed]; INF -> DB; CSV -> INF;
+  {rank=same; INF; CSV}
+}

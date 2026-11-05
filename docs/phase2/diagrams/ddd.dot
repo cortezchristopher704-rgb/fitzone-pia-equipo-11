@@ -1,0 +1,27 @@
+digraph DDD {
+ graph [rankdir=LR, bgcolor="white", pad="0.25", nodesep="0.45", ranksep="0.65", fontname="Arial", label="FitZone — Modelo táctico DDD (alineado al código actual)", labelloc=t, fontsize=20];
+ node [shape=box, style="rounded,filled", fontname="Arial", fontsize=10, color="#455A64", fillcolor="#EAF2F8", margin="0.12,0.08"];
+ edge [fontname="Arial", fontsize=9, color="#546E7A", arrowsize=0.75];
+ subgraph cluster_aggs { label="Aggregate Roots / Entidades"; color="#1976D2"; style="rounded";
+  Socio [label="Socio\nAggregate Root\n- activo / tipo_plan\n- vigencia\n- no_shows_mes / bloqueo\n- reservas_activas_count", fillcolor="#D6EAF8"];
+  Operacion [label="OperacionMembresia\nAggregate Root\n- estado: SOLICITADA…\n- líneas / autorización\n- aprobar / suspender / vencer / cancelar", fillcolor="#D6EAF8"];
+  Clase [label="ClaseProgramada\nAggregate Root\n- capacidad / horario / instructor\n- reservas / lista_espera FIFO\n- promoción pendiente / expiración\n- asistencia / no-show / cancelación", fillcolor="#D6EAF8"];
+  Reserva [label="Reserva\nEntidad interna\n- socio_id / clase_id\n- estado\n- es_drop_in / tarifa", fillcolor="#E8F8F5"];
+  Plan [label="PlanDeportivo\nEntidad de catálogo\n- recurso_id / descripción\n- precio / stock / habilitado", fillcolor="#E8F8F5"];
+ }
+ subgraph cluster_vo { label="Value Objects"; color="#388E3C"; style="rounded";
+  Money [label="Money\nDecimal + moneda", fillcolor="#E8F5E9"];
+  Vigencia [label="Vigencia\nfecha_inicio / fecha_fin", fillcolor="#E8F5E9"];
+  Linea [label="LineaOperacion\nrecurso / cantidad / subtotal", fillcolor="#E8F5E9"];
+ }
+ Event [label="DomainEvent\n(nombre, entidad_id, detalles, ocurrido_en)", fillcolor="#FFF3CD", color="#B8860B"];
+ Socio -> Operacion [label="socio asociado"];
+ Clase -> Reserva [label="contiene / administra"];
+ Operacion -> Linea [label="contiene"];
+ Linea -> Money [label="precio_unitario"];
+ Plan -> Money [label="precio_mxn"];
+ Socio -> Vigencia [label="0..1"];
+ Socio -> Event [style=dashed,label="emite"];
+ Operacion -> Event [style=dashed,label="emite"];
+ Clase -> Event [style=dashed,label="emite"];
+}

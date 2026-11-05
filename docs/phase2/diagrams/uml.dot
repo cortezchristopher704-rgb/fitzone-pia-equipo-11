@@ -1,0 +1,36 @@
+digraph UML {
+ graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.35", ranksep="0.55", fontname="Arial", label="FitZone — Arquitectura / UML de clases (implementación actual)", labelloc=t, fontsize=20];
+ node [shape=record, style="filled", fontname="Arial", fontsize=9, color="#455A64", fillcolor="#F8F9F9", margin="0.08"];
+ edge [fontname="Arial", fontsize=8, color="#546E7A", arrowsize=0.7];
+ subgraph cluster_api { label="API / Transporte"; color="#8E44AD"; style=rounded;
+  API [label="{src.api.main|FastAPI app\nDTOs y rutas REST\nOpenAPI / Swagger}", fillcolor="#F4ECF7"];
+ }
+ subgraph cluster_app { label="Aplicación / Casos de uso"; color="#2874A6"; style=rounded;
+  Memb [label="{MembresiaAppService|evaluar_operacion()\naprobar_operacion()\nsuspender_operacion()\nvencer_operacion()\ncancelar_operacion()}", fillcolor="#D6EAF8"];
+  ReservaS [label="{ReservaAppService|reservar_clase()\ncancelar_reserva()}", fillcolor="#D6EAF8"];
+  Asist [label="{AsistenciaAppService|registrar_asistencia()\nregistrar_no_show()}", fillcolor="#D6EAF8"];
+  Acceso [label="{ControlAccesoAppService|validar_ingreso()}", fillcolor="#D6EAF8"];
+  Reportes [label="{ReportesQueryService|reporte_ocupacion_clases()\nreporte_no_shows_socios()}", fillcolor="#D6EAF8"];
+  Ports [label="{Ports / Protocols|SocioRepositoryPort\nCatalogoRepositoryPort\nOperacionRepositoryPort\nClaseProgramadaRepositoryPort\nUnitOfWorkPort\nNotificadorPort / TorniquetePort / PasarelaPagoPort}", fillcolor="#EBF5FB"];
+ }
+ subgraph cluster_domain { label="Dominio"; color="#239B56"; style=rounded;
+  Socio [label="{Socio|verificar_acceso_fisico()\nregistrar_no_show()\nactualizar_bloqueo()}", fillcolor="#E8F8F5"];
+  Clase [label="{ClaseProgramada|reservar()\ncancelar_reserva()\nconfirmar_promocion()\nexpirar_promocion()\nregistrar_asistencia()\nregistrar_no_show()}", fillcolor="#E8F8F5"];
+  Op [label="{OperacionMembresia|agregar_linea()\naprobar() / suspender()\nvencer() / cancelar()\nejecutar_accion_transicion()}", fillcolor="#E8F8F5"];
+  Spec [label="{Specification|AND / OR / NOT\nSocioActivoSpec\nElegibleParaReservarSpec\n…}", fillcolor="#E8F8F5"];
+  VO [label="{Value Objects|Money / Vigencia\nLineaOperacion}", fillcolor="#E8F8F5"];
+  Event [label="{DomainEvent|nombre / entidad_id\ndetalles / ocurrido_en}", fillcolor="#FCF3CF"];
+ }
+ subgraph cluster_infra { label="Infraestructura"; color="#CA6F1E"; style=rounded;
+  Repos [label="{repositories.py|SqlSocioRepository\nSqlCatalogoRepository\nSqlOperacionRepository\nSqlClaseProgramadaRepository\nSqlAlchemyUnitOfWork}", fillcolor="#FDEBD0"];
+  DB [label="{database.py|SQLAlchemy\nSQLite / PostgreSQL URL}", fillcolor="#FDEBD0"];
+  CSV [label="{csv_loader.py|Carga de actores, catálogo\ny operaciones desde CSV}", fillcolor="#FDEBD0"];
+ }
+ API -> Memb; API -> ReservaS; API -> Asist; API -> Acceso; API -> Reportes;
+ Memb -> Ports; ReservaS -> Ports; Asist -> Ports; Acceso -> Ports; Reportes -> Ports;
+ Ports -> Repos [label="implementados por"];
+ Repos -> DB; CSV -> DB;
+ Memb -> Op; ReservaS -> Clase; Asist -> Clase; Asist -> Socio; Acceso -> Socio;
+ Op -> Spec; Op -> VO; Socio -> VO; Clase -> Socio [style=dashed,label="consulta / actualiza socio"];
+ Socio -> Event [style=dashed]; Clase -> Event [style=dashed]; Op -> Event [style=dashed];
+}

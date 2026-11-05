@@ -1,0 +1,2014 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FitZone — API de Lógica de Negocio (PIA Equipo 11)",
+    "description": "Solución integral de software basada en Domain-Driven Design (DDD), Specification Pattern, State Machine, Unit of Work y CQRS para FitZone (Caso 11).",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Sistema"
+        ],
+        "summary": "Health Check",
+        "description": "Verifica el estado operativo de la API y conexión a datos.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/seed": {
+      "post": {
+        "tags": [
+          "Sistema"
+        ],
+        "summary": "Seed Database",
+        "description": "Recarga los 40 socios, 20 planes, 60 operaciones y clases base desde los CSV oficiales.",
+        "operationId": "seed_database_api_v1_seed_post",
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Seed Database Api V1 Seed Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/socios": {
+      "get": {
+        "tags": [
+          "Socios y Accesos"
+        ],
+        "summary": "Listar Socios",
+        "operationId": "listar_socios_api_v1_socios_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Socios Api V1 Socios Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/socios/{actor_id}": {
+      "get": {
+        "tags": [
+          "Socios y Accesos"
+        ],
+        "summary": "Obtener Socio",
+        "operationId": "obtener_socio_api_v1_socios__actor_id__get",
+        "parameters": [
+          {
+            "name": "actor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Actor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Obtener Socio Api V1 Socios  Actor Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/socios/{actor_id}/vigencia": {
+      "put": {
+        "tags": [
+          "Socios y Accesos"
+        ],
+        "summary": "Actualizar Vigencia Socio",
+        "description": "Registra el periodo real de membresía; el CSV oficial no proporciona estas fechas.",
+        "operationId": "actualizar_vigencia_socio_api_v1_socios__actor_id__vigencia_put",
+        "parameters": [
+          {
+            "name": "actor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Actor Id"
+            }
+          },
+          {
+            "name": "X-Staff-Role",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Role"
+            }
+          },
+          {
+            "name": "X-Staff-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Token"
+            }
+          },
+          {
+            "name": "X-Staff-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActualizarVigenciaDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Actualizar Vigencia Socio Api V1 Socios  Actor Id  Vigencia Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/socios/{actor_id}/acceso": {
+      "post": {
+        "tags": [
+          "Socios y Accesos"
+        ],
+        "summary": "Validar Acceso Torniquete",
+        "description": "CU-04 (US-006, US-007): Valida ingreso físico en recepción según vigencia de membresía.",
+        "operationId": "validar_acceso_torniquete_api_v1_socios__actor_id__acceso_post",
+        "parameters": [
+          {
+            "name": "actor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Actor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Validar Acceso Torniquete Api V1 Socios  Actor Id  Acceso Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalogo": {
+      "get": {
+        "tags": [
+          "Catálogo de Planes"
+        ],
+        "summary": "Listar Catalogo",
+        "operationId": "listar_catalogo_api_v1_catalogo_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Catalogo Api V1 Catalogo Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/operaciones": {
+      "get": {
+        "tags": [
+          "Operaciones y Membresías"
+        ],
+        "summary": "Listar Operaciones",
+        "operationId": "listar_operaciones_api_v1_operaciones_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Operaciones Api V1 Operaciones Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/operaciones/{operacion_id}": {
+      "get": {
+        "tags": [
+          "Operaciones y Membresías"
+        ],
+        "summary": "Obtener Operacion",
+        "operationId": "obtener_operacion_api_v1_operaciones__operacion_id__get",
+        "parameters": [
+          {
+            "name": "operacion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Operacion Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Obtener Operacion Api V1 Operaciones  Operacion Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/operaciones/{operacion_id}/evaluar": {
+      "get": {
+        "tags": [
+          "Operaciones y Membresías"
+        ],
+        "summary": "Evaluar Operacion Specifications",
+        "description": "Evalúa PUEDE_PROCESARSE_SPEC y BENEFICIO_PREFERENTE_SPEC sobre la operación.",
+        "operationId": "evaluar_operacion_specifications_api_v1_operaciones__operacion_id__evaluar_get",
+        "parameters": [
+          {
+            "name": "operacion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Operacion Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Evaluar Operacion Specifications Api V1 Operaciones  Operacion Id  Evaluar Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/operaciones/{operacion_id}/aprobar": {
+      "post": {
+        "tags": [
+          "Operaciones y Membresías"
+        ],
+        "summary": "Aprobar Operacion",
+        "description": "Transición SOLICITADA -> ACTIVA validando Specifications.",
+        "operationId": "aprobar_operacion_api_v1_operaciones__operacion_id__aprobar_post",
+        "parameters": [
+          {
+            "name": "operacion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Operacion Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Aprobar Operacion Api V1 Operaciones  Operacion Id  Aprobar Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/operaciones/{operacion_id}/suspender": {
+      "post": {
+        "tags": [
+          "Operaciones y Membresías"
+        ],
+        "summary": "Suspender Operacion",
+        "description": "Transición ACTIVA -> SUSPENDIDA.",
+        "operationId": "suspender_operacion_api_v1_operaciones__operacion_id__suspender_post",
+        "parameters": [
+          {
+            "name": "operacion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Operacion Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/MotivoRequestDTO"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Suspender Operacion Api V1 Operaciones  Operacion Id  Suspender Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/operaciones/{operacion_id}/vencer": {
+      "post": {
+        "tags": [
+          "Operaciones y Membresías"
+        ],
+        "summary": "Vencer Operacion",
+        "description": "Transición ACTIVA/SUSPENDIDA -> VENCIDA y cancelación de reservas activas (US-018).",
+        "operationId": "vencer_operacion_api_v1_operaciones__operacion_id__vencer_post",
+        "parameters": [
+          {
+            "name": "operacion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Operacion Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Vencer Operacion Api V1 Operaciones  Operacion Id  Vencer Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/operaciones/{operacion_id}/cancelar": {
+      "post": {
+        "tags": [
+          "Operaciones y Membresías"
+        ],
+        "summary": "Cancelar Operacion",
+        "description": "Transición SOLICITADA -> CANCELADA.",
+        "operationId": "cancelar_operacion_api_v1_operaciones__operacion_id__cancelar_post",
+        "parameters": [
+          {
+            "name": "operacion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Operacion Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/MotivoRequestDTO"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Cancelar Operacion Api V1 Operaciones  Operacion Id  Cancelar Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases": {
+      "get": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Listar Clases",
+        "operationId": "listar_clases_api_v1_clases_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Clases Api V1 Clases Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Crear Clase",
+        "operationId": "crear_clase_api_v1_clases_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearClaseRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Crear Clase Api V1 Clases Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases/{clase_id}/reservas/recepcion": {
+      "post": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Reservar Desde Recepcion",
+        "description": "US-008: permite al personal de recepción registrar una reserva en nombre de un socio.",
+        "operationId": "reservar_desde_recepcion_api_v1_clases__clase_id__reservas_recepcion_post",
+        "parameters": [
+          {
+            "name": "clase_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clase Id"
+            }
+          },
+          {
+            "name": "X-Staff-Role",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Role"
+            }
+          },
+          {
+            "name": "X-Staff-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Token"
+            }
+          },
+          {
+            "name": "X-Staff-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservaRecepcionDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Reservar Desde Recepcion Api V1 Clases  Clase Id  Reservas Recepcion Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases/{clase_id}/instructor/{instructor_id}/lista": {
+      "get": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Consultar Lista Instructor",
+        "description": "US-009: el instructor consulta socios confirmados, asistidos y en lista de espera.",
+        "operationId": "consultar_lista_instructor_api_v1_clases__clase_id__instructor__instructor_id__lista_get",
+        "parameters": [
+          {
+            "name": "clase_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clase Id"
+            }
+          },
+          {
+            "name": "instructor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Instructor Id"
+            }
+          },
+          {
+            "name": "X-Staff-Role",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Role"
+            }
+          },
+          {
+            "name": "X-Staff-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Token"
+            }
+          },
+          {
+            "name": "X-Staff-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Consultar Lista Instructor Api V1 Clases  Clase Id  Instructor  Instructor Id  Lista Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases/{clase_id}/capacidad": {
+      "patch": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Actualizar Capacidad Clase",
+        "description": "US-012: permite al administrador cambiar la capacidad respetando las reservas activas.",
+        "operationId": "actualizar_capacidad_clase_api_v1_clases__clase_id__capacidad_patch",
+        "parameters": [
+          {
+            "name": "clase_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clase Id"
+            }
+          },
+          {
+            "name": "X-Staff-Role",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Role"
+            }
+          },
+          {
+            "name": "X-Staff-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Token"
+            }
+          },
+          {
+            "name": "X-Staff-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActualizarCapacidadDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Actualizar Capacidad Clase Api V1 Clases  Clase Id  Capacidad Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases/{clase_id}/planes-incluidos": {
+      "patch": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Actualizar Planes Incluidos Clase",
+        "description": "US-013: configura qué tipos de membresía pueden reservar una clase sin Drop-in.",
+        "operationId": "actualizar_planes_incluidos_clase_api_v1_clases__clase_id__planes_incluidos_patch",
+        "parameters": [
+          {
+            "name": "clase_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clase Id"
+            }
+          },
+          {
+            "name": "X-Staff-Role",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Role"
+            }
+          },
+          {
+            "name": "X-Staff-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Token"
+            }
+          },
+          {
+            "name": "X-Staff-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActualizarPlanesIncluidosDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Actualizar Planes Incluidos Clase Api V1 Clases  Clase Id  Planes Incluidos Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reportes/alertas-vencimiento": {
+      "post": {
+        "tags": [
+          "Reportes y Analítica CQRS"
+        ],
+        "summary": "Consultar Alertas Vencimiento",
+        "description": "US-016: consulta socios cuya membresía vence dentro de N días (sin enviar correo externo).",
+        "operationId": "consultar_alertas_vencimiento_api_v1_reportes_alertas_vencimiento_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertasVencimientoDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Consultar Alertas Vencimiento Api V1 Reportes Alertas Vencimiento Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases/{clase_id}/reservas": {
+      "post": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Reservar Lugar En Clase",
+        "description": "CU-01 / CU-02 (US-001, US-003, US-019): Reserva cupo o inscribe en Lista de Espera FIFO.",
+        "operationId": "reservar_lugar_en_clase_api_v1_clases__clase_id__reservas_post",
+        "parameters": [
+          {
+            "name": "clase_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clase Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservaRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Reservar Lugar En Clase Api V1 Clases  Clase Id  Reservas Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases/{clase_id}/cancelar-reserva/{socio_id}": {
+      "post": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Cancelar Reserva En Clase",
+        "description": "CU-03 (US-004, US-005): Cancela reserva validando cut-off de 3h y promoviendo en FIFO.",
+        "operationId": "cancelar_reserva_en_clase_api_v1_clases__clase_id__cancelar_reserva__socio_id__post",
+        "parameters": [
+          {
+            "name": "clase_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clase Id"
+            }
+          },
+          {
+            "name": "socio_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Socio Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/CancelarReservaRequestDTO"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Dto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Cancelar Reserva En Clase Api V1 Clases  Clase Id  Cancelar Reserva  Socio Id  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases/{clase_id}/asistencia/{socio_id}": {
+      "post": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Registrar Asistencia En Clase",
+        "description": "US-011: Registra asistencia efectiva y conserva el contador mensual de no-shows.",
+        "operationId": "registrar_asistencia_en_clase_api_v1_clases__clase_id__asistencia__socio_id__post",
+        "parameters": [
+          {
+            "name": "clase_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clase Id"
+            }
+          },
+          {
+            "name": "socio_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Socio Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Registrar Asistencia En Clase Api V1 Clases  Clase Id  Asistencia  Socio Id  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases/{clase_id}/promociones/{socio_id}/confirmar": {
+      "post": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Confirmar Promocion Lista Espera",
+        "description": "US-005: Confirma una promoción FIFO dentro de la ventana de 30 minutos.",
+        "operationId": "confirmar_promocion_lista_espera_api_v1_clases__clase_id__promociones__socio_id__confirmar_post",
+        "parameters": [
+          {
+            "name": "clase_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clase Id"
+            }
+          },
+          {
+            "name": "socio_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Socio Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Confirmar Promocion Lista Espera Api V1 Clases  Clase Id  Promociones  Socio Id  Confirmar Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases/{clase_id}/promociones/procesar-expiracion": {
+      "post": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Procesar Expiracion Promocion",
+        "description": "Procesa vencimientos de promociones; puede invocarse mediante tarea programada.",
+        "operationId": "procesar_expiracion_promocion_api_v1_clases__clase_id__promociones_procesar_expiracion_post",
+        "parameters": [
+          {
+            "name": "clase_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clase Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Procesar Expiracion Promocion Api V1 Clases  Clase Id  Promociones Procesar Expiracion Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases/{clase_id}/no-show/{socio_id}": {
+      "post": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Registrar No Show En Clase",
+        "description": "CU-05 (US-011, US-017): Registra inasistencia y bloquea 7 días al 3er no-show mensual.",
+        "operationId": "registrar_no_show_en_clase_api_v1_clases__clase_id__no_show__socio_id__post",
+        "parameters": [
+          {
+            "name": "clase_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clase Id"
+            }
+          },
+          {
+            "name": "socio_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Socio Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Registrar No Show En Clase Api V1 Clases  Clase Id  No Show  Socio Id  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases/{clase_id}/reasignar-instructor": {
+      "post": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Reasignar Instructor Clase",
+        "description": "US-020 (N6): Reasigna un instructor de respaldo cuando el titular no puede asistir.",
+        "operationId": "reasignar_instructor_clase_api_v1_clases__clase_id__reasignar_instructor_post",
+        "parameters": [
+          {
+            "name": "clase_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clase Id"
+            }
+          },
+          {
+            "name": "X-Staff-Role",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Role"
+            }
+          },
+          {
+            "name": "X-Staff-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Token"
+            }
+          },
+          {
+            "name": "X-Staff-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasignarInstructorDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Reasignar Instructor Clase Api V1 Clases  Clase Id  Reasignar Instructor Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clases/{clase_id}/cancelar-instructor": {
+      "post": {
+        "tags": [
+          "Clases y Reservas"
+        ],
+        "summary": "Cancelar Clase Por Instructor",
+        "description": "US-010 (N6): Cancela una clase con al menos 2 horas de anticipación.",
+        "operationId": "cancelar_clase_por_instructor_api_v1_clases__clase_id__cancelar_instructor_post",
+        "parameters": [
+          {
+            "name": "clase_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clase Id"
+            }
+          },
+          {
+            "name": "X-Staff-Role",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Role"
+            }
+          },
+          {
+            "name": "X-Staff-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Token"
+            }
+          },
+          {
+            "name": "X-Staff-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelarInstructorDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Cancelar Clase Por Instructor Api V1 Clases  Clase Id  Cancelar Instructor Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notificaciones/pendientes": {
+      "get": {
+        "tags": [
+          "Notificaciones"
+        ],
+        "summary": "Listar Notificaciones Pendientes",
+        "description": "Consulta la outbox de notificaciones pendientes de entrega externa.",
+        "operationId": "listar_notificaciones_pendientes_api_v1_notificaciones_pendientes_get",
+        "parameters": [
+          {
+            "name": "X-Staff-Role",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Role"
+            }
+          },
+          {
+            "name": "X-Staff-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Token"
+            }
+          },
+          {
+            "name": "X-Staff-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Staff-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Listar Notificaciones Pendientes Api V1 Notificaciones Pendientes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reportes/ocupacion": {
+      "get": {
+        "tags": [
+          "Reportes y Analítica CQRS"
+        ],
+        "summary": "Obtener Reporte Ocupacion",
+        "description": "US-014 (N5): Reporte de porcentaje de ocupación y demanda por clase.",
+        "operationId": "obtener_reporte_ocupacion_api_v1_reportes_ocupacion_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Obtener Reporte Ocupacion Api V1 Reportes Ocupacion Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reportes/no-shows": {
+      "get": {
+        "tags": [
+          "Reportes y Analítica CQRS"
+        ],
+        "summary": "Obtener Reporte No Shows",
+        "description": "US-015 (N5): Reporte de inasistencias acumuladas y socios bloqueados.",
+        "operationId": "obtener_reporte_no_shows_api_v1_reportes_no_shows_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Obtener Reporte No Shows Api V1 Reportes No Shows Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lote-pruebas/casos": {
+      "get": {
+        "tags": [
+          "Evaluación Paquete 11_FitZone"
+        ],
+        "summary": "Ejecutar 120 Casos Csv",
+        "description": "Ejecuta en vivo los 120 casos de prueba de casos_prueba.csv y devuelve el resumen.",
+        "operationId": "ejecutar_120_casos_csv_api_v1_lote_pruebas_casos_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Ejecutar 120 Casos Csv Api V1 Lote Pruebas Casos Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lote-pruebas/transiciones": {
+      "get": {
+        "tags": [
+          "Evaluación Paquete 11_FitZone"
+        ],
+        "summary": "Ejecutar 20 Transiciones Csv",
+        "description": "Ejecuta en vivo las 20 pruebas de transición de transiciones_prueba.csv.",
+        "operationId": "ejecutar_20_transiciones_csv_api_v1_lote_pruebas_transiciones_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Ejecutar 20 Transiciones Csv Api V1 Lote Pruebas Transiciones Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActualizarCapacidadDTO": {
+        "properties": {
+          "capacidad_maxima": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Capacidad Maxima",
+            "examples": [
+              20
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "capacidad_maxima"
+        ],
+        "title": "ActualizarCapacidadDTO"
+      },
+      "ActualizarPlanesIncluidosDTO": {
+        "properties": {
+          "planes_incluidos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Planes Incluidos",
+            "examples": [
+              [
+                "BASICO",
+                "PREMIUM"
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "planes_incluidos"
+        ],
+        "title": "ActualizarPlanesIncluidosDTO"
+      },
+      "ActualizarVigenciaDTO": {
+        "properties": {
+          "fecha_inicio": {
+            "type": "string",
+            "format": "date",
+            "title": "Fecha Inicio",
+            "examples": [
+              "2026-11-01"
+            ]
+          },
+          "fecha_fin": {
+            "type": "string",
+            "format": "date",
+            "title": "Fecha Fin",
+            "examples": [
+              "2026-11-30"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "fecha_inicio",
+          "fecha_fin"
+        ],
+        "title": "ActualizarVigenciaDTO"
+      },
+      "AlertasVencimientoDTO": {
+        "properties": {
+          "dias_anticipacion": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 0.0,
+            "title": "Dias Anticipacion",
+            "default": 7,
+            "examples": [
+              7
+            ]
+          }
+        },
+        "type": "object",
+        "title": "AlertasVencimientoDTO"
+      },
+      "CancelarInstructorDTO": {
+        "properties": {
+          "horas_anticipacion": {
+            "type": "number",
+            "title": "Horas Anticipacion",
+            "description": "Campo legacy ignorado; la API calcula la anticipación con el horario persistido de la clase.",
+            "default": 2.5,
+            "examples": [
+              2.5
+            ]
+          },
+          "motivo": {
+            "type": "string",
+            "title": "Motivo",
+            "default": "Fuerza mayor del instructor",
+            "examples": [
+              "Incapacidad médica"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "CancelarInstructorDTO"
+      },
+      "CancelarReservaRequestDTO": {
+        "properties": {
+          "horas_anticipacion": {
+            "type": "number",
+            "title": "Horas Anticipacion",
+            "description": "Campo legacy ignorado; la API calcula la anticipación con el horario persistido de la clase.",
+            "default": 4.0,
+            "examples": [
+              4.0
+            ]
+          }
+        },
+        "type": "object",
+        "title": "CancelarReservaRequestDTO"
+      },
+      "CrearClaseRequestDTO": {
+        "properties": {
+          "clase_id": {
+            "type": "string",
+            "title": "Clase Id",
+            "examples": [
+              "CLASE-04"
+            ]
+          },
+          "disciplina": {
+            "type": "string",
+            "title": "Disciplina",
+            "examples": [
+              "Box Funcional"
+            ]
+          },
+          "horario": {
+            "type": "string",
+            "title": "Horario",
+            "examples": [
+              "2026-11-06 09:00"
+            ]
+          },
+          "capacidad_maxima": {
+            "type": "integer",
+            "title": "Capacidad Maxima",
+            "examples": [
+              15
+            ]
+          },
+          "instructor_id": {
+            "type": "string",
+            "title": "Instructor Id",
+            "default": "INST-01",
+            "examples": [
+              "INST-01"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "clase_id",
+          "disciplina",
+          "horario",
+          "capacidad_maxima"
+        ],
+        "title": "CrearClaseRequestDTO"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MotivoRequestDTO": {
+        "properties": {
+          "motivo": {
+            "type": "string",
+            "title": "Motivo",
+            "default": "Solicitud administrativa",
+            "examples": [
+              "Fin de vigencia / Ajuste"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "MotivoRequestDTO"
+      },
+      "ReasignarInstructorDTO": {
+        "properties": {
+          "nuevo_instructor_id": {
+            "type": "string",
+            "title": "Nuevo Instructor Id",
+            "examples": [
+              "INST-SUPLENTE-09"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "nuevo_instructor_id"
+        ],
+        "title": "ReasignarInstructorDTO"
+      },
+      "ReservaRecepcionDTO": {
+        "properties": {
+          "socio_id": {
+            "type": "string",
+            "title": "Socio Id",
+            "examples": [
+              "FIT-C001"
+            ]
+          },
+          "empleado_id": {
+            "type": "string",
+            "title": "Empleado Id",
+            "examples": [
+              "REC-01"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "socio_id",
+          "empleado_id"
+        ],
+        "title": "ReservaRecepcionDTO"
+      },
+      "ReservaRequestDTO": {
+        "properties": {
+          "socio_id": {
+            "type": "string",
+            "title": "Socio Id",
+            "description": "ID del socio solicitante",
+            "examples": [
+              "FIT-C001"
+            ]
+          },
+          "es_drop_in": {
+            "type": "boolean",
+            "title": "Es Drop In",
+            "description": "Indica si es inscripción extraordinaria Drop-in (US-019)",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "socio_id"
+        ],
+        "title": "ReservaRequestDTO"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+# FitZone PIA — Render Blueprint
+# Despliega la API FastAPI y PostgreSQL sin requerir Docker Desktop local.
+# El worker continuo se mantiene en Docker Compose/CI; Render requiere un plan
+# de pago para Background Workers, por eso no se crea automáticamente aquí.
+
+databases:
+  - name: fitzone-db
+    databaseName: fitzone_db
+    user: fitzone_user
+    plan: free
+    region: ohio
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: fitzone-api
+    runtime: python
+    plan: free
+    region: ohio
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /openapi.json
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: FITZONE_DATA_DIR
+        value: ./datos
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fitzone-db
+          property: connectionString
+      - key: FITZONE_STAFF_TOKEN_ADMIN
+        generateValue: true
+      - key: FITZONE_STAFF_TOKEN_RECEPCION
+        generateValue: true
+      - key: FITZONE_STAFF_TOKEN_INSTRUCTOR
+        generateValue: true

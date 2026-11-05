@@ -1,0 +1,21 @@
+﻿recurso_id,descripcion,precio_mxn,capacidad_o_stock,habilitado
+FIT-P001,Mensual 01,474.00,13,1
+FIT-P002,Trimestral 02,545.00,16,1
+FIT-P003,Semestral 03,616.00,19,1
+FIT-P004,Anual 04,687.00,22,1
+FIT-P005,Mensual 05,758.00,25,1
+FIT-P006,Trimestral 06,829.00,28,1
+FIT-P007,Semestral 07,900.00,31,1
+FIT-P008,Anual 08,971.00,34,1
+FIT-P009,Mensual 09,1042.00,37,1
+FIT-P010,Trimestral 10,1113.00,40,1
+FIT-P011,Semestral 11,1184.00,43,0
+FIT-P012,Anual 12,1255.00,46,1
+FIT-P013,Mensual 13,1326.00,49,1
+FIT-P014,Trimestral 14,1397.00,52,1
+FIT-P015,Semestral 15,1468.00,10,1
+FIT-P016,Anual 16,1539.00,13,1
+FIT-P017,Mensual 17,1610.00,16,1
+FIT-P018,Trimestral 18,1681.00,19,1
+FIT-P019,Semestral 19,1752.00,22,1
+FIT-P020,Anual 20,1823.00,25,1

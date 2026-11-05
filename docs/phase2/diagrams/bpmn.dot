@@ -1,0 +1,96 @@
+digraph FitZone_BPMN {
+  graph [rankdir=LR, compound=true, bgcolor="white", pad="0.25", nodesep="0.35", ranksep="0.55", fontname="Arial", label="FitZone — Modelo integral de procesos del negocio (PIA)\nCarriles por participante; eventos, tareas y compuertas de decisión", labelloc=t, fontsize=18];
+  node [fontname="Arial", fontsize=9, color="#455A64", style="filled", fillcolor="#F8F9F9", margin="0.12,0.07"];
+  edge [fontname="Arial", fontsize=8, color="#566573", arrowsize=0.7];
+
+  subgraph cluster_socio { label="POOL: FitZone  |  LANE: Socio"; color="#2874A6"; style="rounded";
+    s_start [shape=circle, label="Inicio", fillcolor="#D5F5E3"];
+    s_member [shape=box, label="Solicita / renueva membresía"];
+    s_access [shape=box, label="Presenta identificación\npara ingresar"];
+    s_book [shape=box, label="Solicita reservar una clase"];
+    s_cancel [shape=box, label="Cancela reserva"];
+    s_confirm [shape=box, label="Confirma lugar promovido\nen un máximo de 30 min"];
+    s_end [shape=doublecircle, label="Fin", fillcolor="#D5F5E3"];
+  }
+
+  subgraph cluster_staff { label="LANE: Recepción / Administración"; color="#7D3C98"; style="rounded";
+    a_register [shape=box, label="Registrar socio y datos\ncontractuales"];
+    a_validity [shape=box, label="Asignar / actualizar\nfechas de vigencia"];
+    a_reports [shape=box, label="Consultar ocupación,\nno-shows y vencimientos"];
+    a_sub [shape=box, label="Asignar instructor suplente"];
+  }
+
+  subgraph cluster_instructor { label="LANE: Instructor"; color="#CA6F1E"; style="rounded";
+    i_list [shape=box, label="Consultar confirmados,\nasistidos y lista de espera"];
+    i_attend [shape=box, label="Registrar asistencia"];
+    i_absent [shape=box, label="Reportar ausencia /\ncancelación de clase"];
+  }
+
+  subgraph cluster_system { label="LANE: Aplicación FitZone (API + Aplicación + Dominio + Persistencia)"; color="#239B56"; style="rounded";
+    m_validate [shape=box, label="Validar socio, autorización,\nplan habilitado, stock y detalle"];
+    m_benefit [shape=box, label="Evaluar Specification VIP:\npreferente AND total ≥ $1,500\nAND sin promoción"];
+    m_state [shape=box, label="Aplicar transición de estado\ny persistir operación"];
+    g_member [shape=diamond, label="¿Vigencia\nregistrada y válida?", fillcolor="#FCF3CF"];
+    m_allow [shape=box, label="Permitir acceso físico\ny registrar evento"];
+    m_deny [shape=box, label="Denegar acceso\n(motivo explícito)", fillcolor="#FADBD8"];
+    m_elig [shape=diamond, label="¿Socio elegible?\nActivo, vigente, sin bloqueo,\nplan y límite", fillcolor="#FCF3CF"];
+    g_capacity [shape=diamond, label="¿Hay cupo?", fillcolor="#FCF3CF"];
+    m_reserve [shape=box, label="Crear reserva confirmada\ny actualizar contador"];
+    m_queue [shape=box, label="Agregar socio al final\nde la cola FIFO"];
+    m_cancel [shape=box, label="Cancelar reserva\n(si cumple cut-off de 3 h)"];
+    m_promote [shape=box, label="Promover primer socio FIFO\ny crear ventana de 30 min"];
+    g_confirm [shape=diamond, label="¿Confirma\na tiempo?", fillcolor="#FCF3CF"];
+    m_keep [shape=box, label="Confirmar reserva promovida"];
+    m_expire [shape=box, label="Expirar promoción y\npasar al siguiente socio"];
+    m_noshow [shape=box, label="Registrar NO_SHOW\ny contar por mes calendario"];
+    g_threshold [shape=diamond, label="¿3 no-shows\nen el mes?", fillcolor="#FCF3CF"];
+    m_block [shape=box, label="Bloquear nuevas reservas\npor 7 días; no bloquear\nel acceso físico vigente", fillcolor="#FDEBD0"];
+    m_notify [shape=box, label="Guardar notificación en outbox\n(entrega externa no configurada)"];
+    g_instructor [shape=diamond, label="¿Suplente\ndisponible?", fillcolor="#FCF3CF"];
+    m_reassign [shape=box, label="Reasignar instructor\ny encolar aviso a socios"];
+    m_cancel_class [shape=box, label="Cancelar clase, notificar\ny ofrecer alternativas"];
+  }
+
+  subgraph cluster_worker { label="LANE: Worker programado"; color="#AF601A"; style="rounded";
+    w_tick [shape=ellipse, label="Temporizador\ncada 60 segundos", fillcolor="#FDEBD0"];
+    w_exp [shape=box, label="Buscar promociones\npendientes vencidas"];
+    w_daily [shape=ellipse, label="Temporizador diario\n(hora configurable)", fillcolor="#FDEBD0"];
+    w_alert [shape=box, label="Generar alertas de\nmembresías próximas a vencer"];
+  }
+
+  s_start -> s_member -> a_register -> a_validity -> m_validate -> m_benefit -> m_state -> s_end;
+  s_access -> g_member;
+  g_member -> m_allow [label="Sí"];
+  g_member -> m_deny [label="No / sin datos"];
+  m_allow -> s_end; m_deny -> s_end;
+
+  s_book -> m_elig;
+  m_elig -> g_capacity [label="Sí"];
+  m_elig -> s_end [label="No: rechazar"];
+  g_capacity -> m_reserve [label="Sí"];
+  g_capacity -> m_queue [label="No"];
+  m_reserve -> i_list; m_queue -> s_end;
+  s_cancel -> m_cancel -> m_promote -> s_confirm -> g_confirm;
+  g_confirm -> m_keep [label="Sí"];
+  g_confirm -> m_expire [label="No / vence"];
+  m_expire -> m_promote;
+  m_keep -> s_end;
+  i_list -> i_attend;
+  i_attend -> s_end [label="Asistió"];
+  i_list -> m_noshow [style=dashed, label="No se presentó"];
+  m_noshow -> g_threshold;
+  g_threshold -> m_block [label="Sí"];
+  g_threshold -> s_end [label="No"];
+  m_block -> s_end;
+
+  i_absent -> g_instructor;
+  g_instructor -> a_sub [label="Sí"];
+  a_sub -> m_reassign -> m_notify -> s_end;
+  g_instructor -> m_cancel_class [label="No"];
+  m_cancel_class -> m_notify;
+
+  w_tick -> w_exp -> m_expire;
+  w_daily -> w_alert -> a_reports;
+  a_reports -> s_end;
+  {rank=same; s_member; s_access; s_book; s_cancel; s_confirm;}
+}

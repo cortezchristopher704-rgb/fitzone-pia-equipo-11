@@ -1,0 +1,16 @@
+stateDiagram-v2
+direction TB
+[*] --> SOLICITADA : alta de operación (CSV / recepción)
+SOLICITADA --> ACTIVA : aprobar()<br/>[PUEDE_PROCESARSE_SPEC]<br/>/ OperacionActivada
+SOLICITADA --> CANCELADA : cancelar()<br/>/ OperacionCancelada
+ACTIVA --> SUSPENDIDA : suspender()<br/>/ OperacionSuspendida
+ACTIVA --> VENCIDA : vencer()<br/>/ MembresiaVencida
+SUSPENDIDA --> VENCIDA : vencer()<br/>/ MembresiaVencida
+VENCIDA --> [*]
+CANCELADA --> [*]
+note right of SOLICITADA
+  Cualquier otra transición lanza
+  TransicionEstadoInvalidaError (HTTP 409)
+  Precondición fallida lanza
+  PrecondicionOperacionError (HTTP 422)
+end note

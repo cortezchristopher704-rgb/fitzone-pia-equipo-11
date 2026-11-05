@@ -1,0 +1,21 @@
+﻿caso_id,operacion_id,accion_sugerida,estado_inicial,estado_final,resultado_alumno,evidencia_tecnica
+FIT-S001,FIT-O001,completar,SOLICITADA,VENCIDA,TRANSICION_EXITOSA -> VENCIDA,"Eventos emitidos: ['OperacionActivada', 'OperacionSuspendida', 'MembresiaVencida']"
+FIT-S002,FIT-O002,cancelar,SOLICITADA,CANCELADA,TRANSICION_EXITOSA -> CANCELADA,Eventos emitidos: ['OperacionCancelada']
+FIT-S003,FIT-O003,repetir_aprobacion,SOLICITADA,ACTIVA,RECHAZADA (TransicionEstadoInvalidaError),Estado preservado: ACTIVA | Detalle: No se puede aprobar/activar una operación desde el estado ACTIVA
+FIT-S004,FIT-O004,saltar_estado,SOLICITADA,SOLICITADA,RECHAZADA (TransicionEstadoInvalidaError),Estado preservado: SOLICITADA | Detalle: No se puede vencer directamente desde SOLICITADA; requiere pasar por ACTIVA/SUSPENDIDA
+FIT-S005,FIT-O005,aprobar,SOLICITADA,SOLICITADA,RECHAZADA (PrecondicionOperacionError),"Estado preservado: SOLICITADA | Detalle: Operación FIT-O005 rechazada por precondiciones: socio inactivo, recurso deshabilitado"
+FIT-S006,FIT-O006,completar,SOLICITADA,SOLICITADA,RECHAZADA (PrecondicionOperacionError),Estado preservado: SOLICITADA | Detalle: Operación FIT-O006 rechazada por precondiciones: socio inactivo
+FIT-S007,FIT-O007,cancelar,SOLICITADA,CANCELADA,TRANSICION_EXITOSA -> CANCELADA,Eventos emitidos: ['OperacionCancelada']
+FIT-S008,FIT-O008,repetir_aprobacion,SOLICITADA,SOLICITADA,RECHAZADA (PrecondicionOperacionError),"Estado preservado: SOLICITADA | Detalle: Operación FIT-O008 rechazada por precondiciones: socio inactivo, sin autorización"
+FIT-S009,FIT-O009,saltar_estado,SOLICITADA,SOLICITADA,RECHAZADA (TransicionEstadoInvalidaError),Estado preservado: SOLICITADA | Detalle: No se puede vencer directamente desde SOLICITADA; requiere pasar por ACTIVA/SUSPENDIDA
+FIT-S010,FIT-O010,aprobar,SOLICITADA,ACTIVA,TRANSICION_EXITOSA -> ACTIVA,Eventos emitidos: ['OperacionActivada']
+FIT-S011,FIT-O011,completar,SOLICITADA,VENCIDA,TRANSICION_EXITOSA -> VENCIDA,"Eventos emitidos: ['OperacionActivada', 'OperacionSuspendida', 'MembresiaVencida']"
+FIT-S012,FIT-O012,cancelar,SOLICITADA,CANCELADA,TRANSICION_EXITOSA -> CANCELADA,Eventos emitidos: ['OperacionCancelada']
+FIT-S013,FIT-O013,repetir_aprobacion,SOLICITADA,SOLICITADA,RECHAZADA (PrecondicionOperacionError),Estado preservado: SOLICITADA | Detalle: Operación FIT-O013 rechazada por precondiciones: detalle vacío
+FIT-S014,FIT-O014,saltar_estado,SOLICITADA,SOLICITADA,RECHAZADA (TransicionEstadoInvalidaError),Estado preservado: SOLICITADA | Detalle: No se puede vencer directamente desde SOLICITADA; requiere pasar por ACTIVA/SUSPENDIDA
+FIT-S015,FIT-O015,aprobar,SOLICITADA,SOLICITADA,RECHAZADA (PrecondicionOperacionError),Estado preservado: SOLICITADA | Detalle: Operación FIT-O015 rechazada por precondiciones: recurso deshabilitado
+FIT-S016,FIT-O016,completar,SOLICITADA,SOLICITADA,RECHAZADA (PrecondicionOperacionError),Estado preservado: SOLICITADA | Detalle: Operación FIT-O016 rechazada por precondiciones: sin autorización
+FIT-S017,FIT-O017,cancelar,SOLICITADA,CANCELADA,TRANSICION_EXITOSA -> CANCELADA,Eventos emitidos: ['OperacionCancelada']
+FIT-S018,FIT-O018,repetir_aprobacion,SOLICITADA,ACTIVA,RECHAZADA (TransicionEstadoInvalidaError),Estado preservado: ACTIVA | Detalle: No se puede aprobar/activar una operación desde el estado ACTIVA
+FIT-S019,FIT-O019,saltar_estado,SOLICITADA,SOLICITADA,RECHAZADA (TransicionEstadoInvalidaError),Estado preservado: SOLICITADA | Detalle: No se puede vencer directamente desde SOLICITADA; requiere pasar por ACTIVA/SUSPENDIDA
+FIT-S020,FIT-O020,aprobar,SOLICITADA,SOLICITADA,RECHAZADA (PrecondicionOperacionError),Estado preservado: SOLICITADA | Detalle: Operación FIT-O020 rechazada por precondiciones: recurso deshabilitado

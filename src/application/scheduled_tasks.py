@@ -4,14 +4,14 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from src.domain.models import EstadoOperacion, EstadoReserva, Reserva
 from src.infrastructure.repositories import (
     SqlAlchemyUnitOfWork,
     SqlClaseProgramadaRepository,
     SqlOperacionRepository,
-    SqlSocioRepository,
     SqlOutboxNotificador,
+    SqlSocioRepository,
 )
-from src.domain.models import EstadoOperacion, EstadoReserva, Reserva
 
 
 def procesar_promociones_expiradas(session: Session, ahora: datetime | None = None) -> dict[str, Any]:

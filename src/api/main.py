@@ -873,6 +873,15 @@ def reservar_desde_recepcion(
     )
     try:
         resultado = service.reservar_clase(dto.socio_id, clase_id, es_drop_in=dto.es_drop_in)
+        socio = SqlSocioRepository(session).get_by_id(dto.socio_id)
+        clase = SqlClaseProgramadaRepository(session).get_by_id(clase_id)
+        nombre_socio = socio.nombre if socio else dto.socio_id
+        nombre_clase = clase.disciplina if clase else "la clase solicitada"
+        resultado["mensaje"] = (
+            f"Reserva registrada para {nombre_socio} (socio {dto.socio_id}) "
+            f"en {nombre_clase} (clase {clase_id}). "
+            f"Resultado: {str(resultado.get('estado', 'procesada')).lower().replace('_', ' ')}."
+        )
         return {**resultado, "registrada_por": empleado_autenticado, "canal": "RECEPCION"}
     except FitZoneDomainError as exc:
         raise _traducir_error_dominio(exc)
@@ -976,7 +985,17 @@ def reservar_lugar_en_clase(
         notificador=SqlOutboxNotificador(session),
     )
     try:
-        return service.reservar_clase(dto.socio_id, clase_id, es_drop_in=dto.es_drop_in)
+        resultado = service.reservar_clase(dto.socio_id, clase_id, es_drop_in=dto.es_drop_in)
+        socio = SqlSocioRepository(session).get_by_id(dto.socio_id)
+        clase = SqlClaseProgramadaRepository(session).get_by_id(clase_id)
+        nombre_socio = socio.nombre if socio else dto.socio_id
+        nombre_clase = clase.disciplina if clase else "la clase solicitada"
+        resultado["mensaje"] = (
+            f"Solicitud de reserva de {nombre_socio} (socio {dto.socio_id}) "
+            f"para {nombre_clase} (clase {clase_id}) procesada. "
+            f"Resultado: {str(resultado.get('estado', 'procesada')).lower().replace('_', ' ')}."
+        )
+        return resultado
     except FitZoneDomainError as exc:
         raise _traducir_error_dominio(exc)
 
@@ -1001,7 +1020,14 @@ def cancelar_reserva_en_clase(
             notificador=SqlOutboxNotificador(session),
         )
         # El campo legacy dto.horas_anticipacion se ignora: la regla usa horario persistido.
-        return service.cancelar_reserva(socio_id, clase_id, horas_anticipacion=horas_reales)
+        resultado = service.cancelar_reserva(socio_id, clase_id, horas_anticipacion=horas_reales)
+        socio = SqlSocioRepository(session).get_by_id(socio_id)
+        nombre_socio = socio.nombre if socio else socio_id
+        resultado["mensaje"] = (
+            f"La reserva de {nombre_socio} (socio {socio_id}) para "
+            f"{clase.disciplina} (clase {clase_id}) fue cancelada correctamente."
+        )
+        return resultado
     except FitZoneDomainError as exc:
         raise _traducir_error_dominio(exc)
 

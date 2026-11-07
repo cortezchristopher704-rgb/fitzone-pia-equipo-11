@@ -392,47 +392,55 @@ def seed_database(session: Session = Depends(get_db_session)) -> dict[str, Any]:
 # ==============================================================================
 
 
-@app.get("/api/v1/socios", tags=["Socios y Accesos"])
-def listar_socios(session: Session = Depends(get_db_session)) -> list[dict[str, Any]]:
-    repo = SqlSocioRepository(session)
-    return [
-        {
-            "actor_id": s.actor_id,
-            "nombre": s.nombre,
-            "es_preferente": s.es_preferente,
-            "activo": s.activo,
-            "ciudad": s.ciudad,
-            "tipo_plan": s.tipo_plan,
-            "no_shows_mes": s.no_shows_mes,
-            "bloqueado_reservas": s.bloqueado_reservas,
-            "reservas_activas_count": s.reservas_activas_count,
-            "vigencia_inicio": s.vigencia.fecha_inicio.isoformat() if s.vigencia else None,
-            "vigencia_fin": s.vigencia.fecha_fin.isoformat() if s.vigencia else None,
-        }
-        for s in repo.list_all()
-    ]
-
-
-@app.get("/api/v1/socios/{actor_id}", tags=["Socios y Accesos"])
-def obtener_socio(actor_id: str, session: Session = Depends(get_db_session)) -> dict[str, Any]:
-    repo = SqlSocioRepository(session)
-    s = repo.get_by_id(actor_id)
-    if s is None:
-        raise HTTPException(status_code=404, detail=f"No encontramos un socio con el número {actor_id}.")
+def _serializar_socio(s: Any) -> dict[str, Any]:
+    """Presenta la información de un socio con una explicación útil para el personal."""
+    estado = "activo" if s.activo else "inactivo"
+    plan = s.tipo_plan or "sin plan asignado"
+    vigencia = (
+        f"Su servicio está vigente del {s.vigencia.fecha_inicio.isoformat()} "
+        f"al {s.vigencia.fecha_fin.isoformat()}."
+        if s.vigencia else "No tiene fechas de vigencia registradas."
+    )
+    restriccion = (
+        f" Tiene una restricción de reservas por inasistencias "
+        f"({s.no_shows_mes} inasistencias este mes)."
+        if s.bloqueado_reservas else ""
+    )
     return {
+        "mensaje": (
+            f"Socio {s.nombre}. Número único de socio: {s.actor_id}. "
+            f"Servicio contratado: plan {plan}. Estado de la cuenta: {estado}. "
+            f"{vigencia}{restriccion}"
+        ),
         "actor_id": s.actor_id,
         "nombre": s.nombre,
+        "numero_socio": s.actor_id,
+        "servicio_contratado": plan,
         "es_preferente": s.es_preferente,
         "activo": s.activo,
         "ciudad": s.ciudad,
         "tipo_plan": s.tipo_plan,
         "no_shows_mes": s.no_shows_mes,
         "bloqueado_reservas": s.bloqueado_reservas,
-        "dias_bloqueo_restantes": s.dias_bloqueo_restantes,
+        "dias_bloqueo_restantes": getattr(s, "dias_bloqueo_restantes", 0),
         "reservas_activas_count": s.reservas_activas_count,
         "vigencia_inicio": s.vigencia.fecha_inicio.isoformat() if s.vigencia else None,
         "vigencia_fin": s.vigencia.fecha_fin.isoformat() if s.vigencia else None,
     }
+
+
+@app.get("/api/v1/socios", tags=["Socios y Accesos"])
+def listar_socios(session: Session = Depends(get_db_session)) -> list[dict[str, Any]]:
+    """Muestra el padrón de socios con su nombre, número único, servicio y estado."""
+    return [_serializar_socio(socio) for socio in SqlSocioRepository(session).list_all()]
+
+
+@app.get("/api/v1/socios/{actor_id}", tags=["Socios y Accesos"])
+def obtener_socio(actor_id: str, session: Session = Depends(get_db_session)) -> dict[str, Any]:
+    socio = SqlSocioRepository(session).get_by_id(actor_id)
+    if socio is None:
+        raise HTTPException(status_code=404, detail=f"No encontramos un socio con el número {actor_id}. Verifica el número e inténtalo nuevamente.")
+    return _serializar_socio(socio)
 
 
 @app.put("/api/v1/socios/{actor_id}/vigencia", tags=["Socios y Accesos"])
@@ -530,7 +538,9 @@ def listar_catalogo(session: Session = Depends(get_db_session)) -> list[dict[str
     repo = SqlCatalogoRepository(session)
     return [
         {
+            "mensaje": f"Servicio {p.descripcion}. Clave de servicio: {p.recurso_id}. Precio: $ {p.precio_mxn.amount} MXN. {'Disponible para contratación.' if p.habilitado else 'Actualmente no disponible para contratación.'}",
             "recurso_id": p.recurso_id,
+            "nombre_servicio": p.descripcion,
             "descripcion": p.descripcion,
             "precio_mxn": str(p.precio_mxn.amount),
             "capacidad_o_stock": p.capacidad_o_stock,
@@ -547,7 +557,15 @@ def listar_catalogo(session: Session = Depends(get_db_session)) -> list[dict[str
 
 def _serializar_operacion(op) -> dict[str, Any]:
     return {
+        "mensaje": (
+            f"Operación {op.operacion_id} correspondiente al socio {op.socio.nombre} "
+            f"(número {op.socio.actor_id}). Servicio solicitado: "
+            f"{', '.join(linea.descripcion for linea in op.lineas) or 'sin conceptos registrados'}. "
+            f"Estado actual: {op.estado.value.lower().replace('_', ' ')}. "
+            f"Total a pagar: $ {op.total_neto.amount} MXN."
+        ),
         "operacion_id": op.operacion_id,
+        "socio_nombre": op.socio.nombre,
         "actor_id": op.socio.actor_id,
         "socio_activo": op.socio.activo,
         "socio_preferente": op.socio.es_preferente,
@@ -760,6 +778,7 @@ def listar_clases(session: Session = Depends(get_db_session)) -> list[dict[str, 
     repo = SqlClaseProgramadaRepository(session)
     return [
         {
+            "mensaje": f"Clase de {c.disciplina}, identificador {c.clase_id}. Horario: {c.horario}. Lugares disponibles: {c.cupos_disponibles} de {c.capacidad_maxima}.",
             "clase_id": c.clase_id,
             "disciplina": c.disciplina,
             "horario": c.horario,

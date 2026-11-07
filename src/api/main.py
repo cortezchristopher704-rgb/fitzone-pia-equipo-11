@@ -13,7 +13,9 @@ from datetime import UTC, date, datetime, timedelta
 from datetime import time as time_type
 from typing import Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -93,6 +95,43 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def manejar_datos_de_entrada_invalidos(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """Devuelve indicaciones claras cuando faltan datos o algún campo tiene un formato incorrecto."""
+    errores_amigables = []
+    for error in exc.errors():
+        ubicacion = error.get("loc", ())
+        campo = str(ubicacion[-1]) if ubicacion else "solicitud"
+        tipo = str(error.get("type", ""))
+
+        if tipo.endswith("missing"):
+            mensaje = "Este dato es obligatorio."
+        elif "greater_than" in tipo or "greater_than_equal" in tipo:
+            mensaje = "El valor debe ser mayor al mínimo permitido."
+        elif "less_than" in tipo or "less_than_equal" in tipo:
+            mensaje = "El valor supera el máximo permitido."
+        elif "string_too_short" in tipo:
+            mensaje = "El texto es demasiado corto."
+        elif "string_too_long" in tipo:
+            mensaje = "El texto es demasiado largo."
+        elif "int_parsing" in tipo or "float_parsing" in tipo or "type" in tipo:
+            mensaje = "El formato del dato no es válido."
+        elif "date" in tipo:
+            mensaje = "Escribe una fecha válida."
+        else:
+            mensaje = "Revisa el valor de este campo."
+
+        errores_amigables.append({"campo": campo, "mensaje": mensaje})
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        content={
+            "detail": "Hay información incorrecta o incompleta. Revisa los campos indicados e inténtalo nuevamente.",
+            "errores": errores_amigables,
+        },
+    )
 
 
 # ==============================================================================
@@ -271,7 +310,7 @@ def _mensaje_error_dominio(exc: FitZoneDomainError) -> str:
         (ReservaDuplicadaError, "Ya existe una reserva para esta clase con ese socio."),
         (ReservaNoEncontradaError, "No encontramos una reserva para realizar esta operación."),
         (CancelacionTardiaError, "Ya pasó el límite de tiempo permitido para cancelar esta reserva."),
-        (MembresiaInactivaError, None),
+        (MembresiaInactivaError, "La membresía no está activa o no tiene una vigencia registrada. Actualiza sus fechas antes de continuar."),
         (RecursoNoDisponibleError, "El plan o la clase solicitada no está disponible."),
         (TransicionEstadoInvalidaError, "La operación no puede realizarse porque el estado actual no lo permite."),
         (PrecondicionOperacionError, "No se cumplen los requisitos para realizar esta operación."),
@@ -345,7 +384,7 @@ def health_check() -> dict[str, str]:
 def seed_database(session: Session = Depends(get_db_session)) -> dict[str, Any]:
     """Recarga los 40 socios, 20 planes, 60 operaciones y clases base desde los CSV oficiales."""
     resumen = poblar_base_de_datos(session)
-    return {"mensaje": "Base de datos poblada exitosamente desde CSVs oficiales", "resumen": resumen}
+    return {"mensaje": "Los datos iniciales de FitZone se cargaron correctamente.", "resumen": resumen}
 
 
 # ==============================================================================

@@ -14,11 +14,13 @@ from datetime import time as time_type
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from src.application.services import (
     AsistenciaAppService,
@@ -60,7 +62,7 @@ from src.infrastructure.repositories import (
 
 # Motor global reutilizable
 _ENGINE = make_engine()
-
+bearer_scheme = HTTPBearer(auto_error=False)
 
 def get_db_session():
     session = make_session(_ENGINE)
@@ -95,7 +97,16 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.exception_handler(RequestValidationError)
 async def manejar_datos_de_entrada_invalidos(request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -285,26 +296,53 @@ def _leer_token_sesion(token: str) -> dict[str, Any]:
 
 
 def requerir_rol_staff(rol_esperado: str):
-    """Valida una sesión firmada; conserva headers internos para compatibilidad de pruebas/API."""
+    """Valida una sesión firmada o los encabezados internos de personal."""
+
     def dependencia(
-        authorization: str | None = Header(None, alias="Authorization"),
+        credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
         x_staff_role: str | None = Header(None, alias="X-Staff-Role"),
         x_staff_token: str | None = Header(None, alias="X-Staff-Token"),
         x_staff_id: str | None = Header(None, alias="X-Staff-Id"),
     ) -> str:
-        if authorization and authorization.startswith("Bearer "):
-            payload = _leer_token_sesion(authorization[7:].strip())
+
+        if credentials:
+            payload = _leer_token_sesion(credentials.credentials)
+
             if payload.get("rol") != rol_esperado:
-                raise HTTPException(status_code=403, detail="Tu cuenta no tiene permisos para realizar esta operación.")
+                raise HTTPException(
+                    status_code=403,
+                    detail="Tu cuenta no tiene permisos para realizar esta operación."
+                )
+
             return str(payload.get("id", ""))
-        token_configurado = os.getenv(f"FITZONE_STAFF_TOKEN_{rol_esperado}")
+
+        token_configurado = os.getenv(
+            f"FITZONE_STAFF_TOKEN_{rol_esperado}"
+        )
+
         if not all((x_staff_role, x_staff_token, x_staff_id)):
-            raise HTTPException(status_code=401, detail="Inicia sesión para continuar.")
+            raise HTTPException(
+                status_code=401,
+                detail="Inicia sesión para continuar."
+            )
+
         if not token_configurado:
-            raise HTTPException(status_code=503, detail="El acceso del personal no está configurado.")
-        if x_staff_role.strip().upper() != rol_esperado or not hmac.compare_digest(x_staff_token, token_configurado):
-            raise HTTPException(status_code=403, detail="No se pudo validar tu acceso.")
+            raise HTTPException(
+                status_code=503,
+                detail="El acceso del personal no está configurado."
+            )
+
+        if (
+            x_staff_role.strip().upper() != rol_esperado
+            or not hmac.compare_digest(x_staff_token, token_configurado)
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="No se pudo validar tu acceso."
+            )
+
         return x_staff_id.strip()
+
     return dependencia
 
 def _mensaje_error_dominio(exc: FitZoneDomainError) -> str:
@@ -368,12 +406,22 @@ def iniciar_sesion(dto: LoginRequestDTO) -> dict[str, Any]:
 
 
 @app.get("/api/v1/auth/me", tags=["Autenticación"])
-def consultar_sesion(authorization: str | None = Header(None, alias="Authorization")) -> dict[str, Any]:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Inicia sesión para continuar.")
-    payload = _leer_token_sesion(authorization[7:].strip())
-    return {"rol": payload["rol"], "id": payload["id"], "exp": payload["exp"]}
+def consultar_sesion(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, Any]:
+    if not credentials:
+        raise HTTPException(
+            status_code=401,
+            detail="Inicia sesión para continuar."
+        )
 
+    payload = _leer_token_sesion(credentials.credentials)
+
+    return {
+        "rol": payload["rol"],
+        "id": payload["id"],
+        "exp": payload["exp"]
+    }
 
 # ==============================================================================
 # ENDPOINTS DE SALUD Y SEMILLA DE DATOS

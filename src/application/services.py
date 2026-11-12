@@ -1,6 +1,7 @@
 """Servicios de Aplicación y Casos de Uso (Service Layer + CQRS) de FitZone."""
 
-from datetime import date
+import calendar
+from datetime import date, timedelta
 from typing import Any
 
 from src.application.ports import (
@@ -21,6 +22,40 @@ from src.domain.models import (
     OperacionMembresia,
     ServicioDeInscripcionExtraordinaria,
 )
+from src.domain.value_objects import Vigencia
+
+def calcular_vigencia(descripcion: str, fecha_inicio: date) -> Vigencia:
+    """Calcula la vigencia según la duración indicada en el plan."""
+    texto = descripcion.upper()
+
+    if "MENSUAL" in texto:
+        meses = 1
+    elif "TRIMESTRAL" in texto:
+        meses = 3
+    elif "SEMESTRAL" in texto:
+        meses = 6
+    elif "ANUAL" in texto:
+        meses = 12
+    else:
+        raise ValueError(
+            f"No se reconoce la duración del plan: {descripcion}"
+        )
+
+    mes_total = fecha_inicio.month - 1 + meses
+    anio = fecha_inicio.year + mes_total // 12
+    mes = mes_total % 12 + 1
+
+    dia = min(
+        fecha_inicio.day,
+        calendar.monthrange(anio, mes)[1]
+    )
+
+    fecha_fin = date(anio, mes, dia) - timedelta(days=1)
+
+    return Vigencia(
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin
+    )
 
 
 class MembresiaAppService:
@@ -44,7 +79,9 @@ class MembresiaAppService:
         """Evalúa precondiciones y beneficio preferente sobre una operación existente."""
         op = self.operacion_repo.get_by_id(operacion_id)
         if op is None:
-            raise RecursoNoDisponibleError(f"Operación {operacion_id} no encontrada")
+            raise RecursoNoDisponibleError(
+                f"Operación {operacion_id} no encontrada"
+            )
 
         return {
             "operacion_id": op.operacion_id,
@@ -60,29 +97,69 @@ class MembresiaAppService:
         }
 
     def aprobar_operacion(self, operacion_id: str) -> OperacionMembresia:
-        """Aprueba una operación (SOLICITADA -> ACTIVA) dentro de un límite transaccional UoW."""
+        """Aprueba una operación y registra la vigencia de la membresía."""
         op = self.operacion_repo.get_by_id(operacion_id)
+
         if op is None:
-            raise RecursoNoDisponibleError(f"Operación {operacion_id} no encontrada")
+            raise RecursoNoDisponibleError(
+                f"Operación {operacion_id} no encontrada"
+            )
+
         try:
             op.aprobar()
+
+            if not op.lineas:
+                raise ValueError(
+                    "No se puede activar una membresía sin un plan registrado."
+                )
+
+            fecha_inicio = date.today()
+
+            vigencias = [
+                calcular_vigencia(linea.descripcion, fecha_inicio)
+                for linea in op.lineas
+            ]
+
+            fecha_fin = max(
+                vigencia.fecha_fin for vigencia in vigencias
+            )
+
+            op.socio.vigencia = Vigencia(
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin,
+            )
+            op.socio.activo = True
+
+            self.socio_repo.save(op.socio)
             self.operacion_repo.save(op)
+
             self.uow.commit()
+
             if self.notificador:
                 self.notificador.enviar_notificacion(
                     op.socio.actor_id,
                     "Membresía Activada",
-                    f"Su operación {op.operacion_id} ha sido activada con total {op.total_neto.amount} MXN.",
+                    f"Su operación {op.operacion_id} ha sido activada "
+                    f"con vigencia del {fecha_inicio} al {fecha_fin}.",
                 )
+
             return op
+
         except Exception:
             self.uow.rollback()
             raise
 
-    def suspender_operacion(self, operacion_id: str, motivo: str = "Suspensión administrativa") -> OperacionMembresia:
+    def suspender_operacion(
+        self,
+        operacion_id: str,
+        motivo: str = "Suspensión administrativa",
+    ) -> OperacionMembresia:
         op = self.operacion_repo.get_by_id(operacion_id)
         if op is None:
-            raise RecursoNoDisponibleError(f"Operación {operacion_id} no encontrada")
+            raise RecursoNoDisponibleError(
+                f"Operación {operacion_id} no encontrada"
+            )
+
         try:
             op.suspender(motivo)
             self.operacion_repo.save(op)
@@ -97,10 +174,13 @@ class MembresiaAppService:
         operacion_id: str,
         clase_repo: ClaseProgramadaRepositoryPort | None = None,
     ) -> OperacionMembresia:
-        """Transita a VENCIDA y, conforme a US-018, cancela reservas activas del socio."""
+        """Transita a VENCIDA y cancela reservas activas del socio."""
         op = self.operacion_repo.get_by_id(operacion_id)
         if op is None:
-            raise RecursoNoDisponibleError(f"Operación {operacion_id} no encontrada")
+            raise RecursoNoDisponibleError(
+                f"Operación {operacion_id} no encontrada"
+            )
+
         try:
             op.vencer()
             op.socio.activo = False
@@ -109,27 +189,45 @@ class MembresiaAppService:
 
             if clase_repo is not None:
                 for clase in clase_repo.list_all():
-                    promovido_id = clase.cancelar_por_vencimiento_membresia(op.socio)
+                    promovido_id = clase.cancelar_por_vencimiento_membresia(
+                        op.socio
+                    )
+
                     if promovido_id:
                         promovido = self.socio_repo.get_by_id(promovido_id)
                         if promovido:
                             promovido.reservas_activas_count += 1
                             self.socio_repo.save(promovido)
+
                         if self.notificador:
-                            self.notificador.enviar_notificacion(promovido_id, "Lugar liberado por vencimiento",
-                                f"Tienes {clase.ventana_confirmacion_minutos} minutos para confirmar la clase {clase.disciplina}.")
+                            self.notificador.enviar_notificacion(
+                                promovido_id,
+                                "Lugar liberado por vencimiento",
+                                f"Tienes {clase.ventana_confirmacion_minutos} "
+                                f"minutos para confirmar la clase "
+                                f"{clase.disciplina}.",
+                            )
+
                     clase_repo.save(clase)
 
             self.uow.commit()
             return op
+
         except Exception:
             self.uow.rollback()
             raise
 
-    def cancelar_operacion(self, operacion_id: str, motivo: str = "Cancelación solicitada") -> OperacionMembresia:
+    def cancelar_operacion(
+        self,
+        operacion_id: str,
+        motivo: str = "Cancelación solicitada",
+    ) -> OperacionMembresia:
         op = self.operacion_repo.get_by_id(operacion_id)
         if op is None:
-            raise RecursoNoDisponibleError(f"Operación {operacion_id} no encontrada")
+            raise RecursoNoDisponibleError(
+                f"Operación {operacion_id} no encontrada"
+            )
+
         try:
             op.cancelar(motivo)
             self.operacion_repo.save(op)

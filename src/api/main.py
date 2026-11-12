@@ -41,7 +41,7 @@ from src.domain.exceptions import (
     SocioBloqueadoError,
     TransicionEstadoInvalidaError,
 )
-from src.domain.models import ClaseProgramada, OperacionMembresia
+from src.domain.models import ClaseProgramada, OperacionMembresia, Socio
 from src.domain.value_objects import Vigencia
 from src.infrastructure.csv_loader import (
     evaluar_casos_prueba_csv,
@@ -204,6 +204,12 @@ class ActualizarPlanesIncluidosDTO(BaseModel):
 
 class AlertasVencimientoDTO(BaseModel):
     dias_anticipacion: int = Field(7, ge=0, le=365, examples=[7])
+
+
+class RegistrarSocioDTO(BaseModel):
+    nombre: str = Field(..., min_length=3, max_length=120, examples=["María Fernanda López"])
+    ciudad: str = Field("Monterrey", min_length=2, max_length=80, examples=["Monterrey"])
+    es_preferente: bool = False
 
 
 class ActualizarVigenciaDTO(BaseModel):
@@ -426,6 +432,41 @@ def _serializar_socio(s: Any) -> dict[str, Any]:
         "reservas_activas_count": s.reservas_activas_count,
         "vigencia_inicio": s.vigencia.fecha_inicio.isoformat() if s.vigencia else None,
         "vigencia_fin": s.vigencia.fecha_fin.isoformat() if s.vigencia else None,
+    }
+
+
+@app.post("/api/v1/socios", status_code=status.HTTP_201_CREATED, tags=["Socios y Accesos"])
+def registrar_socio(
+    dto: RegistrarSocioDTO,
+    session: Session = Depends(get_db_session),
+    _recepcion_autenticada: str = Depends(requerir_rol_staff("RECEPCION")),
+) -> dict[str, Any]:
+    """Da de alta a una persona en el padrón; la contratación se gestiona por separado."""
+    repo = SqlSocioRepository(session)
+    existentes = repo.list_all()
+    numeros = [
+        int(s.actor_id.removeprefix("FIT-C"))
+        for s in existentes
+        if s.actor_id.startswith("FIT-C") and s.actor_id.removeprefix("FIT-C").isdigit()
+    ]
+    siguiente = max(numeros, default=0) + 1
+    numero_socio = f"FIT-C{siguiente:03d}"
+    socio = Socio(
+        actor_id=numero_socio,
+        nombre=dto.nombre.strip(),
+        ciudad=dto.ciudad.strip(),
+        es_preferente=dto.es_preferente,
+    )
+    repo.save(socio)
+    SqlAlchemyUnitOfWork(session).commit()
+    return {
+        **_serializar_socio(socio),
+        "mensaje": (
+            f"El registro de {socio.nombre} se completó correctamente. "
+            f"Su número único de socio es {numero_socio}. "
+            "El registro quedó creado; la contratación y activación de su membresía se realizan desde Gestión de membresías."
+        ),
+        "registrado": True,
     }
 
 

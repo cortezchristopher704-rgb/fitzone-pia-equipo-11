@@ -23,8 +23,24 @@ function renderSocios(){const c=credential(),canRegister=c.role==="RECEPCION"&&!
 function filterMembers(){const q=$("#member-search").value.toLowerCase();const filtered=state.socios.filter(s=>(s.nombre+" "+s.actor_id+" "+s.tipo_plan+" "+s.ciudad).toLowerCase().includes(q));$("#members-table").innerHTML=table(["SOCIO","PLAN","ESTADO","RESERVAS","VIGENCIA",""],filtered.map(s=>'<tr><td><span class="strong">'+esc(s.nombre)+'</span><span class="sub">'+esc(s.actor_id)+' · '+esc(s.ciudad)+'</span></td><td>'+esc(s.tipo_plan)+'</td><td>'+(s.activo?badge("Activo"):badge("Inactivo","danger"))+'</td><td>'+(s.bloqueado_reservas?badge("Restringido","danger"):badge("Sin restricción"))+'</td><td>'+esc(s.vigencia_inicio||"Sin registrar")+'<span class="sub">al '+esc(s.vigencia_fin||"—")+'</span></td><td><button class="btn btn-ghost small-btn" onclick="showMember(\''+esc(s.actor_id)+'\')">Detalles</button></td></tr>').join(""));}
 function openMemberDialog(){const c=credential();if(c.role!=="RECEPCION"||!c.token){toast("Inicia sesión como Recepción para registrar socios.");$("#settings-dialog").showModal();return;}$("#member-form").reset();$("#member-city").value="Monterrey";$("#member-dialog").showModal();}
 async function createMember(e){e.preventDefault();const f=new FormData(e.currentTarget),button=$("#member-submit");button.disabled=true;button.textContent="Registrando…";try{const result=await api("/api/v1/socios",{method:"POST",body:JSON.stringify({nombre:f.get("nombre").trim(),ciudad:f.get("ciudad").trim(),es_preferente:f.get("es_preferente")==="on"})});$("#member-dialog").close();toast("Socio registrado: "+result.numero_socio+".");await loadBase();}catch(err){toast(err.message);}finally{button.disabled=false;button.textContent="Registrar socio";}}
-async function showMember(id){try{const s=await api("/api/v1/socios/"+encodeURIComponent(id));const info=s.nombre+"\\nNúmero de socio: "+s.actor_id+"\\nCiudad: "+s.ciudad+"\\nPlan actual: "+s.tipo_plan+"\\nEstado: "+(s.activo?"Activo":"Inactivo")+"\\nInasistencias del mes: "+s.no_shows_mes+"\\nVigencia: "+(s.vigencia_inicio||"Sin registrar")+" a "+(s.vigencia_fin||"—");alert(info); }catch(e){toast(e.message);}}
-loadBase();}catch(e){toast(e.message);}}
+async function showMember(id){
+  try {
+    const s = await api("/api/v1/socios/" + encodeURIComponent(id));
+    const info = s.nombre +
+      "\nNúmero de socio: " + s.actor_id +
+      "\nCiudad: " + s.ciudad +
+      "\nPlan actual: " + s.tipo_plan +
+      "\nEstado: " + (s.activo ? "Activo" : "Inactivo") +
+      "\nInasistencias del mes: " + s.no_shows_mes +
+      "\nVigencia: " + (s.vigencia_inicio || "Sin registrar") +
+      " a " + (s.vigencia_fin || "—");
+    alert(info);
+  } catch(e) {
+    toast(e.message);
+  }
+}
+
+loadBase();
 function renderClases(){const cards=state.clases.map(c=>{const used=Math.max(0,Number(c.capacidad_maxima)-Number(c.cupos_disponibles));const pct=Math.min(100,Number(c.porcentaje_ocupacion||0));return '<article class="class-card"><div class="class-top"><span class="class-symbol">▦</span>'+(c.cancelada?badge("Cancelada","danger"):badge(c.cupos_disponibles>0?"Disponible":"Sin cupo",c.cupos_disponibles>0?"":"warn"))+'</div><h3>'+esc(c.disciplina)+'</h3><div class="class-meta">◷ '+esc(dateText(c.horario))+'<br>Instructor: '+esc(c.instructor_id)+'<br>Clave: '+esc(c.clase_id)+'</div><div class="progress"><span style="width:'+pct+'%"></span></div><div class="card-foot"><span class="muted">'+used+' de '+c.capacidad_maxima+' lugares ocupados</span><strong>'+c.cupos_disponibles+' libres</strong></div><button class="btn btn-primary small-btn" style="width:100%;margin-top:13px" onclick="quickReserve(\''+esc(c.clase_id)+'\')" '+(c.cancelada||c.cupos_disponibles<=0?'disabled':'')+'>Registrar reservación</button></article>';}).join("");$("#view").innerHTML='<div class="content-head"><div><h2>Actividades programadas</h2><div class="muted">Consulta horarios, instructores y disponibilidad de lugares.</div></div><div class="action-row"><button class="btn btn-primary" id="new-class-button">＋ Nueva clase</button><button class="btn btn-ghost" onclick="loadBase()">↻ Actualizar</button></div></div><div class="class-grid">'+(cards||'<div class="panel empty">No hay clases programadas.</div>')+'</div>';$("#new-class-button").addEventListener("click",openClassDialog);}
 function openClassDialog(){const c=credential();if(c.role!=="ADMIN"||!c.token||!c.id){toast("Inicia el acceso como Administrador para crear clases.");$("#settings-dialog").showModal();return;}$("#class-form").reset();$("#class-form").elements.capacidad_maxima.value=15;$("#class-form").elements.instructor_id.value="INST-01";$("#class-dialog").showModal();}
 async function createClass(e){e.preventDefault();const f=new FormData(e.target);const payload={clase_id:f.get("clase_id").trim(),disciplina:f.get("disciplina").trim(),horario:f.get("horario").replace("T"," "),capacidad_maxima:Number(f.get("capacidad_maxima")),instructor_id:f.get("instructor_id").trim()};try{await api("/api/v1/clases",{method:"POST",body:JSON.stringify(payload)});$("#class-dialog").close();toast("Clase creada correctamente.");await loadBase();}catch(err){toast(err.message);}}

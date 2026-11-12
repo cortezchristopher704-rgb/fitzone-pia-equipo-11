@@ -63,6 +63,19 @@
       </form>
     </div>
   </dialog>
+  <dialog id="member-dialog">
+    <form method="dialog" class="dialog-head"><div><div class="eyebrow">RECEPCIÓN / PADRÓN DE SOCIOS</div><h2>Registrar nuevo socio</h2></div><button class="icon-button" aria-label="Cerrar">×</button></form>
+    <div class="dialog-body">
+      <p class="muted">Captura los datos básicos para crear el expediente. El número de socio se asignará automáticamente.</p>
+      <form id="member-form">
+        <label>Nombre completo<input name="nombre" placeholder="Ej. María Fernanda López" required minlength="3" maxlength="120" autocomplete="name"></label>
+        <label>Ciudad<input id="member-city" name="ciudad" placeholder="Ej. Monterrey" required minlength="2" maxlength="80"></label>
+        <label style="display:flex;align-items:center;gap:9px"><input name="es_preferente" type="checkbox" style="width:auto"> Registrar como socio preferente</label>
+        <p class="tiny">La membresía, el plan contratado y sus fechas de vigencia se gestionan en el proceso de contratación.</p>
+        <div class="dialog-actions"><button class="btn btn-ghost" type="button" id="cancel-member">Cancelar</button><button class="btn btn-primary" type="submit" id="member-submit">Registrar socio</button></div>
+      </form>
+    </div>
+  </dialog>
   <div id="toast" class="toast" role="status"></div>
   <script src="/app.js" defer></script>
 </body>
